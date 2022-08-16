@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"tiggerops/internal/register/client/actuatorclient"
 	"tiggerops/internal/register/client/pipelinedefinitionclient"
 	"tiggerops/internal/register/client/triggerdefinitionclient"
 )
@@ -11,16 +12,26 @@ import (
 func NewRegister(ctx context.Context, dbClient *gorm.DB) *Service {
 	pipelineVersionDefinitionClient := pipelinedefinitionclient.NewPipelineDefinitionClient(dbClient)
 	triggerDefinitionClient := triggerdefinitionclient.NewTriggerDefinitionClient(dbClient)
+	actuatorClient := actuatorclient.NewActuatorsClient(dbClient)
 
-	var register = Service{ctx: ctx, pipelineVersionDefinitionClient: pipelineVersionDefinitionClient, triggerDefinitionClient: triggerDefinitionClient, dbClient: dbClient}
+	var register = Service{
+		ctx:      ctx,
+		dbClient: dbClient,
+
+		pipelineVersionDefinitionClient: pipelineVersionDefinitionClient,
+		triggerDefinitionClient:         triggerDefinitionClient,
+		actuatorClient:                  actuatorClient,
+	}
 	return &register
 }
 
 type Service struct {
 	pipelineVersionDefinitionClient *pipelinedefinitionclient.Client
 	triggerDefinitionClient         *triggerdefinitionclient.Client
-	dbClient                        *gorm.DB
-	ctx                             context.Context
+	actuatorClient                  *actuatorclient.Client
+
+	dbClient *gorm.DB
+	ctx      context.Context
 }
 
 func (r *Service) Router(router *gin.RouterGroup) {
@@ -39,7 +50,16 @@ func (r *Service) Router(router *gin.RouterGroup) {
 		triggerDefinition.POST("/apply", r.ApplyTriggerDefinition)
 		triggerDefinition.DELETE("/:name", r.DeleteTriggerDefinition)
 		triggerDefinition.GET("/", r.ListMyTriggerDefinition)
+		// todo add list
 		triggerDefinition.GET("/:name/list-event-trigger", r.ListEventTrigger)
+	}
+
+	clientGroup := router.Group("/actuator")
+	{
+		clientGroup.POST("/apply", r.ApplyActuator)
+		clientGroup.DELETE("/:name", r.DeleteActuator)
+		clientGroup.GET("/", r.ListMyActuator)
+		// todo add tags actuator
 	}
 }
 

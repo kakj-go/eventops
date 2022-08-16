@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"tiggerops/pkg/dialer"
+	"time"
 )
 
 var serverAddr string
@@ -34,5 +35,9 @@ func main() {
 		dialer.AuthHeader: []string{token},
 	}
 
-	remotedialer.ClientConnect(context.Background(), serverAddr, headers, nil, auth, nil)
+	for {
+		remotedialer.ClientConnect(context.Background(), serverAddr, headers, nil, auth, nil)
+		logrus.Errorf("failed to client server: %v, restart after 5 second", serverAddr)
+		time.Sleep(5 * time.Second)
+	}
 }

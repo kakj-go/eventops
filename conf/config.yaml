@@ -26,4 +26,5 @@ uc:
     whiteUrlList:
       - /api/user/register
       - /api/user/login
+      - /api/dialer/connect
 

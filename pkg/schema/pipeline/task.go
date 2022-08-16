@@ -19,6 +19,10 @@ const ImageNameVersionSplitWord = ":"
 
 var TaskTypeList = []TaskType{K8sType, DockerType, OsType, PipeType}
 
+func (t TaskType) String() string {
+	return string(t)
+}
+
 type Task struct {
 	Image            string           `yaml:"image,omitempty"`
 	Alias            string           `yaml:"alias,omitempty"`

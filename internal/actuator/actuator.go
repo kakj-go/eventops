@@ -3,28 +3,22 @@ package actuator
 import (
 	"context"
 	"fmt"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"net"
-	"tiggerops/internal/actuator/client/actuatorclient"
 	"tiggerops/pkg/dialer"
 )
 
 func NewActuator(ctx context.Context, dbClient *gorm.DB, DialerServer *dialer.Server) *Service {
 	var actuator = Service{
-		ctx:            ctx,
-		actuatorClient: actuatorclient.NewActuatorClient(dbClient),
-		dbClient:       dbClient,
-		DialerServer:   DialerServer,
+		ctx:          ctx,
+		dbClient:     dbClient,
+		DialerServer: DialerServer,
 	}
 	return &actuator
 }
 
 type Service struct {
-	actuatorClient *actuatorclient.Client
-	dbClient       *gorm.DB
+	dbClient *gorm.DB
 
 	DialerServer *dialer.Server
 
@@ -40,14 +34,49 @@ func (s *Service) Router(router *gin.RouterGroup) {
 		dialerGroup.GET("/test", func(c *gin.Context) {
 			clientID := c.Query("clientID")
 			dial := s.DialerServer.GetClient(clientID, "60")
-
-			dockerClient, err := client.NewClientWithOpts(client.WithDialContext(func(ctx context.Context, network, addr string) (net.Conn, error) {
-				return dial(network, addr)
-			}))
-			if err != nil {
+			if dial == nil {
+				fmt.Println("")
 				return
 			}
-			fmt.Println(dockerClient.ImageList(context.Background(), types.ImageListOptions{}))
+
+			// docker client dialer
+
+			//dockerClient, err := client.NewClientWithOpts(client.WithHost("tcp://127.0.0.1:2375"), client.WithDialContext(func(ctx context.Context, network, addr string) (net.Conn, error) {
+			//	return dial(network, addr)
+			//}))
+			//if err != nil {
+			//	return
+			//}
+			//fmt.Println(dockerClient.ImageList(context.Background(), types.ImageListOptions{}))
+
+			// ssh client dialer
+
+			//conn, err := dial("tcp", "127.0.0.1:22")
+			//if err != nil {
+			//	logrus.Infof("%v", err)
+			//	return
+			//}
+			//
+			//sshConn, a, b, err := ssh.NewClientConn(conn, "127.0.0.1:22", &ssh.ClientConfig{
+			//	User:            "root",
+			//	Auth:            []ssh.AuthMethod{ssh.Password("zhang2357")},
+			//	HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+			//})
+			//if err != nil {
+			//	logrus.Infof("%v", err)
+			//	return
+			//}
+			//sshClient := ssh.NewClient(sshConn, a, b)
+			//
+			//gophClient := goph.Client{
+			//	Client: sshClient,
+			//}
+			//out, err := gophClient.Run("ls /tmp/")
+			//if err != nil {
+			//	logrus.Infof("%v", err)
+			//	return
+			//}
+			//fmt.Println(string(out))
 		})
 	}
 }

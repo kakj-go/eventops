@@ -22,7 +22,7 @@ type Server struct {
 }
 
 func NewServer() *Server {
-	if conf.GetActuator().Dialer.PrintTunnelData {
+	if conf.GetActuator().PrintTunnelData {
 		remotedialer.PrintTunnelData = true
 	}
 
@@ -45,7 +45,7 @@ func (server *Server) AddAuthInfo(id, token string) {
 func (server *Server) authorizer(req *http.Request) (string, bool, error) {
 	id := req.Header.Get(IdHeader)
 
-	return id, server.AuthList[id] != req.Header.Get(AuthHeader), nil
+	return id, server.AuthList[id] == req.Header.Get(AuthHeader), nil
 }
 
 func (server *Server) GetClient(clientKey, timeout string) remotedialer.Dialer {
@@ -65,6 +65,8 @@ func (server *Server) GetClient(clientKey, timeout string) remotedialer.Dialer {
 	}
 
 	dialer := server.DialerServer.Dialer(clientKey, deadline)
-	server.clients[key] = dialer
-	return client
+	if dialer != nil {
+		server.clients[key] = dialer
+	}
+	return dialer
 }
