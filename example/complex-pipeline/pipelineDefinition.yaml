@@ -1,0 +1,89 @@
+version: 1.0
+name: git_clone_build_release_deploy_test
+
+contexts:
+  - name: TEST_RUN_USER
+    type: env
+
+inputs:
+  - name: run_user
+    type: env
+  - name: run_user_name
+    type: file
+
+dag:
+  - name: git-clone
+    needs:
+      - root
+  - name: build
+    needs:
+      - git-clone
+  - name: release
+    needs:
+      - build
+      - sonar
+      - junit-test
+  - name: sonar
+    needs:
+      - git-clone
+  - name: junit-test
+    needs:
+      - git-clone
+  - name: deploy
+    needs:
+      - release
+  - name: test
+    needs:
+      - deploy
+
+tasks:
+  - alias: git-clone
+    type: os
+    commands:
+      - echo "${{ inputs.run_user }}"
+      - export TEST_RUN_USER=${{ inputs.run_user }}
+    outputs:
+      - name: filePath
+        value: TEST_RUN_USER
+        type: env
+      - name: file
+        value: /root/value
+        type: file
+  - alias: build
+    type: os
+    commands:
+      - go build -o ${{ outputs.git-clone.filePath }}
+      - ${{ outputs.git-clone.file }}
+    outputs:
+      - name: jar_file
+        value: /test
+        type: file
+  - alias: release
+    type: os
+    commands:
+      - export TEST_RUN_USER=${{ outputs.build.jar_file }}
+    outputs:
+      - name: release
+        value: TEST_RUN_USER
+        type: env
+  - alias: sonar
+    type: os
+    commands:
+     - go build -o ${{ inputs.run_user_name }}
+     - ${{ outputs.git-clone.file }}
+  - alias: junit-test
+    type: os
+    commands:
+      - mvn test ${{ outputs.git-clone.filePath }}
+  - alias: deploy
+    type: os
+    commands:
+      - mvn test ${{ outputs.release.release }}
+  - alias: test
+    type: os
+    commands:
+      - mvn test ${{ outputs.release.release }}
+
+outputs:
+  - name: test_value
+    value: ${{ outputs.git-clone.filePath }}

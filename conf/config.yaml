@@ -1,0 +1,29 @@
+port: 8080
+debug: true
+mysql:
+  user: root
+  password: 123456
+  address: 192.168.56.4
+  port: 3306
+  db: eventops
+
+actuator:
+  dialer:
+    peerID: eventops
+    peerToken: token
+#    peers:
+
+event:
+  process:
+    cacheSize: 10000
+    bufferSize: 500
+    workNum: 5
+    loopLoadEventInterval: 300
+uc:
+  loginTokenExpiresTime: 315360000
+  loginTokenSignature: MYSQL_SIGNATURE
+  auth:
+    whiteUrlList:
+      - /api/user/register
+      - /api/user/login
+

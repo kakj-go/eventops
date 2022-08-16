@@ -1,0 +1,46 @@
+version: 1.1
+name: build
+
+actuatorSelector:
+  tags:
+    - os_runner
+
+contexts:
+  - name: TEST_RUN_USER
+    type: env
+
+inputs:
+  - name: run_user
+    type: env
+
+dag:
+  - name: echo
+    needs:
+      - root
+
+tasks:
+  - alias: echo
+    type: os
+    actuatorSelector:
+      tags:
+        - os_runner
+    timeout: 500
+    commands:
+      - echo "${{ inputs.run_user }}"
+      - export TEST_RUN_USER=${{ inputs.run_user }}
+    outputs:
+      - name: test_run_user
+        value: TEST_RUN_USER
+        type: env
+        setToContext: TEST_RUN_USER
+    resources:
+      limit:
+        cpu: 1
+        mem: 500m
+      req:
+        cpu: 1
+        mem: 500m
+
+outputs:
+  - name: test_value
+    value: ${{ outputs.echo.test_run_user }}

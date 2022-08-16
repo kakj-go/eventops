@@ -1,0 +1,25 @@
+### me info
+GET http://localhost:8080/api/user/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJldmVudG9wcyIsInN1YiI6ImxvZ2luIiwiYXVkIjpbImtha2oiXSwiZXhwIjoxNjYwMTQyNTE0LCJuYmYiOjE2NjAwNTYxMTR9._7u8cOYhAxsoIis2wU60Od_AGZlPbeaYaqn86F13BR0
+
+
+### register user
+POST http://localhost:8080/api/user/register
+Content-Type: application/json
+
+{
+  "name": "kakj",
+  "email": "2357431193@qq.com",
+  "password": "123456"
+}
+
+### user login
+POST http://localhost:8080/api/user/login
+Content-Type: application/json
+
+{
+  "username": "kakj",
+  "password": "123456"
+}
+
+

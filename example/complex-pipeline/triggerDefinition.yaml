@@ -1,0 +1,21 @@
+name: eoctl-run-bind
+
+eventName: eoctl-run
+eventCreater: kakj
+eventVersion: 1.0
+
+pipelines:
+  - image: git_clone_build_release_deploy_test:1.0
+    filters:
+      - expr: $.values.key
+        matches:
+          - name
+          - value
+    inputs:
+      - name: run_user
+        value: $.values.key
+
+filters:
+  - expr: $.values.key
+    matches:
+      - name
