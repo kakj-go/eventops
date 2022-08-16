@@ -11,10 +11,12 @@ import (
 	"os"
 	"os/signal"
 	"tiggerops/conf"
+	"tiggerops/internal/actuator"
 	"tiggerops/internal/event"
 	"tiggerops/internal/register"
 	"tiggerops/internal/uc"
 	"tiggerops/pkg/dbclient"
+	"tiggerops/pkg/dialer"
 	"tiggerops/pkg/token"
 	"time"
 )
@@ -36,15 +38,18 @@ func newServer() (*server, error) {
 	if err != nil {
 		return nil, err
 	}
+	dialerServer := dialer.NewServer()
 
 	ucService := uc.NewService(ctx, dbClient)
 	registerService := register.NewRegister(ctx, dbClient)
 	eventService := event.NewService(ctx, dbClient)
+	actuatorService := actuator.NewActuator(ctx, dbClient, dialerServer)
 
 	var services []Service
 	services = append(services, ucService)
 	services = append(services, registerService)
 	services = append(services, eventService)
+	services = append(services, actuatorService)
 
 	return &server{
 		ginEngine: router,

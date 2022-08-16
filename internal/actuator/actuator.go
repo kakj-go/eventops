@@ -53,6 +53,8 @@ func (s *Service) Router(router *gin.RouterGroup) {
 }
 
 func (s *Service) Run() error {
+	// todo load from db
+	s.DialerServer.AddAuthInfo("docker", "123456")
 	return nil
 }
 

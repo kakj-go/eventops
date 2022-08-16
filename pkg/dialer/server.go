@@ -5,16 +5,19 @@ import (
 	"github.com/rancher/remotedialer"
 	"net/http"
 	"strconv"
-	"strings"
 	"sync"
 	"tiggerops/conf"
 	"time"
 )
 
+const AuthHeader = "eventops-API-Tunnel-Token"
+const IdHeader = "eventops-API-Tunnel-Id"
+
 type Server struct {
 	clients map[string]remotedialer.Dialer
 	l       sync.Mutex
 
+	AuthList     map[string]string
 	DialerServer *remotedialer.Server
 }
 
@@ -23,28 +26,26 @@ func NewServer() *Server {
 		remotedialer.PrintTunnelData = true
 	}
 
-	handler := remotedialer.New(authorizer, remotedialer.DefaultErrorWriter)
-	handler.PeerToken = conf.GetActuator().Dialer.PeerToken
-	handler.PeerID = conf.GetActuator().Dialer.PeerID
-
-	for _, peer := range strings.Split(conf.GetActuator().Dialer.Peers, ",") {
-		parts := strings.SplitN(strings.TrimSpace(peer), ":", 3)
-		if len(parts) != 3 {
-			continue
-		}
-		handler.AddPeer(parts[2], parts[0], parts[1])
+	var server = &Server{
+		l:        sync.Mutex{},
+		clients:  map[string]remotedialer.Dialer{},
+		AuthList: map[string]string{},
 	}
 
-	return &Server{
-		DialerServer: handler,
-		l:            sync.Mutex{},
-		clients:      map[string]remotedialer.Dialer{},
-	}
+	handler := remotedialer.New(server.authorizer, remotedialer.DefaultErrorWriter)
+	server.DialerServer = handler
+
+	return server
 }
 
-func authorizer(req *http.Request) (string, bool, error) {
-	id := req.Header.Get("x-tunnel-id")
-	return id, id != "", nil
+func (server *Server) AddAuthInfo(id, token string) {
+	server.AuthList[id] = token
+}
+
+func (server *Server) authorizer(req *http.Request) (string, bool, error) {
+	id := req.Header.Get(IdHeader)
+
+	return id, server.AuthList[id] != req.Header.Get(AuthHeader), nil
 }
 
 func (server *Server) GetClient(clientKey, timeout string) remotedialer.Dialer {
