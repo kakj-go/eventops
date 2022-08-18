@@ -18,7 +18,7 @@ type Server struct {
 	l       sync.Mutex
 
 	AuthList     map[string]string
-	DialerServer *remotedialer.Server
+	RemoteDialer *remotedialer.Server
 }
 
 func NewServer() *Server {
@@ -33,7 +33,7 @@ func NewServer() *Server {
 	}
 
 	handler := remotedialer.New(server.authorizer, remotedialer.DefaultErrorWriter)
-	server.DialerServer = handler
+	server.RemoteDialer = handler
 
 	return server
 }
@@ -64,7 +64,7 @@ func (server *Server) GetClient(clientKey, timeout string) remotedialer.Dialer {
 		deadline = time.Duration(t) * time.Second
 	}
 
-	dialer := server.DialerServer.Dialer(clientKey, deadline)
+	dialer := server.RemoteDialer.Dialer(clientKey, deadline)
 	if dialer != nil {
 		server.clients[key] = dialer
 	}

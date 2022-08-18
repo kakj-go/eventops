@@ -15,10 +15,12 @@ actuator:
 
 event:
   process:
-    cacheSize: 10000
     bufferSize: 500
     workNum: 5
+
+    triggerCacheSize: 10000
     loopLoadEventInterval: 300
+    processingOverTime: 120
 uc:
   loginTokenExpiresTime: 315360000
   loginTokenSignature: MYSQL_SIGNATURE

@@ -1,0 +1,13 @@
+name: os-runner
+
+os:
+  user: root
+  ip: 192.168.0.109
+  password: zhang2357
+
+tunnel:
+  clientId: docker
+  clientToken: 123456
+
+tags:
+  - os-run

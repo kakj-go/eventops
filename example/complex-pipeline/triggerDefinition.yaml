@@ -7,15 +7,17 @@ eventVersion: 1.0
 pipelines:
   - image: git_clone_build_release_deploy_test:1.0
     filters:
-      - expr: $.values.key
+      - expr: values.user
         matches:
-          - name
-          - value
+          - kakj
+      - expr: files.java
+        matches:
+          - http://www.baidu.com
     inputs:
       - name: run_user
-        value: $.values.key
+        value: values.user
 
 filters:
-  - expr: $.values.key
+  - expr: values.user
     matches:
-      - name
+      - kakj

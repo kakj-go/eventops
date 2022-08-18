@@ -18,12 +18,14 @@ func NewActuatorsClient(client *gorm.DB) *Client {
 }
 
 type Actuator struct {
-	Id      uint64            `json:"id"`
-	Name    string            `json:"name"`
-	Creater string            `json:"creater"`
-	Type    pipeline.TaskType `json:"type"`
-	Status  string            `json:"status"`
-	Content string            `json:"content"`
+	Id          uint64            `json:"id"`
+	Name        string            `json:"name"`
+	Creater     string            `json:"creater"`
+	Type        pipeline.TaskType `json:"type"`
+	Status      string            `json:"status"`
+	Content     string            `json:"content"`
+	ClientId    string            `json:"client_id"`
+	ClientToken string            `json:"client_token"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -61,15 +63,15 @@ func (client *Client) GetActuator(tx *gorm.DB, name string, creater string) (*Ac
 		tx = client.client
 	}
 
-	var actuator Actuator
-	err := tx.Where("name = ? and creater = ?", name, creater).First(&actuator).Error
+	var result Actuator
+	err := tx.Where("name = ? and creater = ?", name, creater).First(&result).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, false, nil
 		}
 		return nil, false, err
 	}
-	return &actuator, true, nil
+	return &result, true, nil
 }
 
 func (client *Client) UpdateActuator(tx *gorm.DB, t *Actuator) (*Actuator, error) {
@@ -106,6 +108,9 @@ func (client *Client) DeleteActuator(tx *gorm.DB, name, creater string) error {
 type ListActuatorQuery struct {
 	Creater string
 	IdList  []uint64
+
+	ClientId    string
+	ClientToken string
 }
 
 func (client *Client) ListActuator(tx *gorm.DB, query ListActuatorQuery) ([]Actuator, error) {
@@ -118,6 +123,12 @@ func (client *Client) ListActuator(tx *gorm.DB, query ListActuatorQuery) ([]Actu
 
 	if len(query.IdList) > 0 {
 		tx = tx.Where("id in (?)", query.IdList)
+	}
+	if query.ClientId != "" {
+		tx = tx.Where("client_id = ?", query.ClientId)
+	}
+	if query.ClientToken != "" {
+		tx = tx.Where("client_token = ?", query.ClientToken)
 	}
 
 	var list []Actuator
@@ -150,6 +161,7 @@ func (client *Client) ListActuatorTags(tx *gorm.DB, query ListActuatorTagQuery) 
 	if len(query.Tags) > 0 {
 		tx = tx.Where("tag in (?)", query.Tags)
 	}
+
 	if query.ActuatorName != "" {
 		tx = tx.Where("actuator_name = ?", query.ActuatorName)
 	}

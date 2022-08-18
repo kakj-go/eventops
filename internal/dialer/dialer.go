@@ -1,4 +1,4 @@
-package actuator
+package dialer
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"tiggerops/pkg/dialer"
 )
 
-func NewActuator(ctx context.Context, dbClient *gorm.DB, DialerServer *dialer.Server) *Service {
+func NewService(ctx context.Context, dbClient *gorm.DB, DialerServer *dialer.Server) *Service {
 	var actuator = Service{
 		ctx:          ctx,
 		dbClient:     dbClient,
@@ -29,7 +29,7 @@ func (s *Service) Router(router *gin.RouterGroup) {
 	dialerGroup := router.Group("/dialer")
 	{
 		dialerGroup.Any("/connect", func(c *gin.Context) {
-			s.DialerServer.DialerServer.ServeHTTP(c.Writer, c.Request)
+			s.DialerServer.RemoteDialer.ServeHTTP(c.Writer, c.Request)
 		})
 		dialerGroup.GET("/test", func(c *gin.Context) {
 			clientID := c.Query("clientID")

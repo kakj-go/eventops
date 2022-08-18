@@ -18,6 +18,11 @@ func (s *Service) send(c *gin.Context) {
 		return
 	}
 
+	if err := eventInfo.Check(); err != nil {
+		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("event check error: %v", err), nil))
+		return
+	}
+
 	eventInfoContent, err := json.Marshal(eventInfo)
 	if err != nil {
 		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("json Marshal error: %v", err), nil))
@@ -37,6 +42,6 @@ func (s *Service) send(c *gin.Context) {
 		return
 	}
 
-	s.Process.AddToProcess(createEvent)
+	s.process.AddToProcess(createEvent)
 	c.JSON(responsehandler.Build(http.StatusOK, "", nil))
 }

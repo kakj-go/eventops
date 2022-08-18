@@ -7,9 +7,10 @@ import (
 	"tiggerops/internal/register/client/actuatorclient"
 	"tiggerops/internal/register/client/pipelinedefinitionclient"
 	"tiggerops/internal/register/client/triggerdefinitionclient"
+	"tiggerops/pkg/eventprocess"
 )
 
-func NewRegister(ctx context.Context, dbClient *gorm.DB) *Service {
+func NewService(ctx context.Context, dbClient *gorm.DB, eventProcess *eventprocess.Process) *Service {
 	pipelineVersionDefinitionClient := pipelinedefinitionclient.NewPipelineDefinitionClient(dbClient)
 	triggerDefinitionClient := triggerdefinitionclient.NewTriggerDefinitionClient(dbClient)
 	actuatorClient := actuatorclient.NewActuatorsClient(dbClient)
@@ -21,11 +22,15 @@ func NewRegister(ctx context.Context, dbClient *gorm.DB) *Service {
 		pipelineVersionDefinitionClient: pipelineVersionDefinitionClient,
 		triggerDefinitionClient:         triggerDefinitionClient,
 		actuatorClient:                  actuatorClient,
+
+		eventProcess: eventProcess,
 	}
 	return &register
 }
 
 type Service struct {
+	eventProcess *eventprocess.Process
+
 	pipelineVersionDefinitionClient *pipelinedefinitionclient.Client
 	triggerDefinitionClient         *triggerdefinitionclient.Client
 	actuatorClient                  *actuatorclient.Client

@@ -5,7 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"tiggerops/internal/event/client/eventclient"
-	"tiggerops/internal/register/client/triggerdefinitionclient"
+	"tiggerops/pkg/eventprocess"
 )
 
 type Service struct {
@@ -13,16 +13,16 @@ type Service struct {
 	eventDbClient *eventclient.Client
 	dbClient      *gorm.DB
 
-	Process Process
+	process *eventprocess.Process
 }
 
-func NewService(ctx context.Context, dbClient *gorm.DB) *Service {
+func NewService(ctx context.Context, dbClient *gorm.DB, eventProcess *eventprocess.Process) *Service {
 	var register = Service{
 		ctx:           ctx,
 		eventDbClient: eventclient.NewEventClient(dbClient),
 		dbClient:      dbClient,
+		process:       eventProcess,
 	}
-	register.Process = NewProcess(register.eventDbClient, triggerdefinitionclient.NewTriggerDefinitionClient(dbClient), dbClient, ctx)
 	return &register
 }
 
@@ -34,8 +34,8 @@ func (s *Service) Router(router *gin.RouterGroup) {
 }
 
 func (s *Service) Run() error {
-	s.Process.Run()
-	s.Process.loopLoadEvent()
+	s.process.Run()
+	s.process.LoopLoadEvent()
 	return nil
 }
 

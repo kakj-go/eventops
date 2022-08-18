@@ -84,6 +84,20 @@ func (client *Client) GetEvent(tx *gorm.DB, name string, version string, creater
 	return &event, nil
 }
 
+func (client *Client) GetEventById(tx *gorm.DB, id uint64) (*Event, error) {
+	if tx == nil {
+		tx = client.client
+	}
+
+	var event Event
+	err := tx.Where("id = ?", id).First(&event).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &event, nil
+}
+
 type EventQuery struct {
 	Statues []apistructs.EventStatus
 }

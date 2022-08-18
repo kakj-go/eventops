@@ -68,7 +68,7 @@ func (t *Trigger) Mutating(creater string) error {
 	return nil
 }
 
-func (t *Trigger) Check() error {
+func (t *Trigger) Check(creater string) error {
 	if t.Name == "" {
 		return fmt.Errorf("trigger definition field: name can not empty")
 	}
@@ -84,18 +84,21 @@ func (t *Trigger) Check() error {
 	if len(t.Pipelines) == 0 {
 		return fmt.Errorf("trigger definition field: pipelines can not empty")
 	}
-	for _, pipeline := range t.Pipelines {
-		if pipeline.Image == "" {
+	for _, pipe := range t.Pipelines {
+		if pipe.Image == "" {
 			return fmt.Errorf("trigger definition pipeline field: image can not empty")
 		}
+		if pipeline.GetImageCreater(pipe.Image) != creater {
+			return fmt.Errorf("trigger definition pipeline field: image user should use youself")
+		}
 
-		for _, input := range pipeline.Inputs {
+		for _, input := range pipe.Inputs {
 			if err := input.check(); err != nil {
 				return err
 			}
 		}
 
-		for _, filter := range pipeline.Filters {
+		for _, filter := range pipe.Filters {
 			if err := filter.check(); err != nil {
 				return err
 			}

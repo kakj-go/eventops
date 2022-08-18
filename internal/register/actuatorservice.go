@@ -45,10 +45,12 @@ func (r *Service) ApplyActuator(c *gin.Context) {
 	err = r.dbClient.Transaction(func(tx *gorm.DB) error {
 		if !find {
 			var create = actuatorclient.Actuator{
-				Name:    actuatorInfo.Name,
-				Creater: token.GetUserName(c),
-				Type:    actuatorInfo.GetType(),
-				Content: applyInfo.ActuatorContent,
+				Name:        actuatorInfo.Name,
+				Creater:     token.GetUserName(c),
+				Type:        actuatorInfo.GetType(),
+				Content:     applyInfo.ActuatorContent,
+				ClientId:    actuatorInfo.GetTunnelClientID(),
+				ClientToken: actuatorInfo.GetTunnelClientToken(),
 			}
 			if _, err := r.actuatorClient.CreateActuator(tx, &create); err != nil {
 				return err
@@ -56,12 +58,13 @@ func (r *Service) ApplyActuator(c *gin.Context) {
 		} else {
 			dbActuator.Content = applyInfo.ActuatorContent
 			dbActuator.Type = actuatorInfo.GetType()
+
+			dbActuator.ClientId = actuatorInfo.GetTunnelClientID()
+			dbActuator.ClientToken = actuatorInfo.GetTunnelClientToken()
 			if _, err := r.actuatorClient.UpdateActuator(tx, dbActuator); err != nil {
 				return err
 			}
 		}
-
-		// todo add info to actuator auth
 
 		if err := r.actuatorClient.DeleteActuatorTags(tx, actuatorInfo.Name, token.GetUserName(c)); err != nil {
 			return err

@@ -1,0 +1,17 @@
+name: docker-runner
+
+docker:
+  ip: 127.0.0.1
+  port: 2375
+  ssh:
+    user: root
+    ip: 192.168.0.109
+    password: zhang2357
+
+tunnel:
+  clientId: docker
+  clientToken: 123456
+
+tags:
+  - docker-run
+  - docker-build-run

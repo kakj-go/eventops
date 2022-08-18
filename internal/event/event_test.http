@@ -1,0 +1,25 @@
+### test send event
+POST http://localhost:8080/api/event/send
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJldmVudG9wcyIsInN1YiI6ImxvZ2luIiwiYXVkIjpbImtha2oiXSwiZXhwIjoxOTc2MDA3MTY4LCJuYmYiOjE2NjA2NDcxNjh9.f3s85GpXPkqWNzVR2xLJwxhfdUy1mjKGRSKIBMJS62s
+
+{
+  "name": "eoctl-run",
+  "version": "1.0",
+  "values": {
+    "user": "root"
+  },
+  "files": {
+    "java": {
+      "type": "http",
+      "value": "http://www.baidu.com"
+    }
+  },
+  "labels": {
+
+  },
+  "timestamp": 1660734846,
+  "users": [
+    "kakj1"
+  ]
+}

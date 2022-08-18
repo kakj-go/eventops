@@ -11,12 +11,13 @@ import (
 	"os"
 	"os/signal"
 	"tiggerops/conf"
-	"tiggerops/internal/actuator"
+	dialerservice "tiggerops/internal/dialer"
 	"tiggerops/internal/event"
 	"tiggerops/internal/register"
 	"tiggerops/internal/uc"
 	"tiggerops/pkg/dbclient"
 	"tiggerops/pkg/dialer"
+	"tiggerops/pkg/eventprocess"
 	"tiggerops/pkg/token"
 	"time"
 )
@@ -38,12 +39,14 @@ func newServer() (*server, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	dialerServer := dialer.NewServer()
+	eventProcess := eventprocess.NewProcess(dbClient, ctx)
 
 	ucService := uc.NewService(ctx, dbClient)
-	registerService := register.NewRegister(ctx, dbClient)
-	eventService := event.NewService(ctx, dbClient)
-	actuatorService := actuator.NewActuator(ctx, dbClient, dialerServer)
+	registerService := register.NewService(ctx, dbClient, eventProcess)
+	eventService := event.NewService(ctx, dbClient, eventProcess)
+	actuatorService := dialerservice.NewService(ctx, dbClient, dialerServer)
 
 	var services []Service
 	services = append(services, ucService)

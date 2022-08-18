@@ -12,7 +12,24 @@ type Actuator struct {
 	Kubernetes *Kubernetes `yaml:"kubernetes,omitempty"`
 	Docker     *Docker     `yaml:"docker,omitempty"`
 
+	Tunnel *Tunnel `yaml:"tunnel,omitempty"`
+	Tls    *Tls    `yaml:"tls,omitempty"`
+
 	Tags []string `yaml:"tags"`
+}
+
+func (a Actuator) GetTunnelClientID() string {
+	if a.Tunnel == nil {
+		return ""
+	}
+	return a.Tunnel.ClientId
+}
+
+func (a Actuator) GetTunnelClientToken() string {
+	if a.Tunnel == nil {
+		return ""
+	}
+	return a.Tunnel.ClientToken
 }
 
 func (a Actuator) Check() error {
@@ -44,6 +61,14 @@ func (a Actuator) Check() error {
 		return err
 	}
 
+	if err := a.Tunnel.check(); err != nil {
+		return err
+	}
+
+	if err := a.Tls.check(); err != nil {
+		return err
+	}
+
 	if len(a.Tags) == 0 {
 		return fmt.Errorf("tags can not empty")
 	}
@@ -67,12 +92,25 @@ func (k *Kubernetes) Check() error {
 	if k == nil {
 		return nil
 	}
+	if k.Config == "" {
+		return fmt.Errorf("kubernetes type actuator config can not empty")
+	}
 	return nil
 }
 
 func (o *Os) Check() error {
 	if o == nil {
 		return nil
+	}
+
+	if o.User == "" {
+		return fmt.Errorf("os type actuator user can not empty")
+	}
+	if o.Password == "" {
+		return fmt.Errorf("os type actuator password can not empty")
+	}
+	if o.Ip == "" {
+		return fmt.Errorf("os type actuator ip can not empty")
 	}
 	return nil
 }
@@ -81,14 +119,22 @@ func (d *Docker) Check() error {
 	if d == nil {
 		return nil
 	}
+	if d.Ip == "" {
+		return fmt.Errorf("docker type actuator ip can not empty")
+	}
+	if d.Port == "" {
+		return fmt.Errorf("docker type actuator port can not empty")
+	}
+
+	if err := d.Ssh.Check(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 type Kubernetes struct {
 	Config string `yaml:"config"`
-
-	Tunnel *Tunnel `yaml:"tunnel,omitempty"`
-	Tls    *Tls    `yaml:"tls,omitempty"`
 }
 
 type Os struct {
@@ -96,18 +142,12 @@ type Os struct {
 	Ip       string `json:"ip"`
 	Password string `yaml:"password,omitempty"`
 	Rsa      string `yaml:"rsa,omitempty"`
-
-	Tunnel Tunnel `yaml:"tunnel,omitempty"`
-	Tls    *Tls   `yaml:"tls,omitempty"`
 }
 
 type Docker struct {
 	Ip   string `json:"ip"`
 	Port string `yaml:"port"`
 	Ssh  *Os    `yaml:"ssh,omitempty"`
-
-	Tunnel *Tunnel `yaml:"tunnel,omitempty"`
-	Tls    *Tls    `yaml:"tls,omitempty"`
 }
 
 type Tunnel struct {
@@ -115,8 +155,34 @@ type Tunnel struct {
 	ClientToken string `yaml:"clientToken"`
 }
 
+func (t *Tunnel) check() error {
+	if t == nil {
+		return nil
+	}
+	if t.ClientId == "" {
+		return fmt.Errorf("tunnel clientId can not empty")
+	}
+	if t.ClientToken == "" {
+		return fmt.Errorf("tunnel clientToken can not empty")
+	}
+	return nil
+}
+
 type Tls struct {
 	ServerPem string `yaml:"serverPem"`
 	ServerKey string `yaml:"serverKey"`
 	ClientPem string `yaml:"clientPem"`
+}
+
+func (tls *Tls) check() error {
+	if tls == nil {
+		return nil
+	}
+	if tls.ServerKey == "" {
+		return fmt.Errorf("tls serverKey can not empty")
+	}
+	if tls.ServerPem == "" {
+		return fmt.Errorf("tls serverPem can not empty")
+	}
+	return nil
 }

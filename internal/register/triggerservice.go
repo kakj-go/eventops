@@ -64,7 +64,7 @@ func (s *Service) ApplyTriggerDefinition(c *gin.Context) {
 		return
 	}
 
-	if err := trigger.Check(); err != nil {
+	if err := trigger.Check(token.GetUserName(c)); err != nil {
 		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, err.Error(), nil))
 		return
 	}
@@ -105,6 +105,7 @@ func (s *Service) ApplyTriggerDefinition(c *gin.Context) {
 			return
 		}
 	}
+	s.eventProcess.DeleteTriggerCache(s.eventProcess.MakeCacheKey(trigger.EventName, trigger.EventVersion, trigger.EventCreater))
 
 	c.JSON(responsehandler.Build(http.StatusOK, "", nil))
 }
@@ -120,11 +121,22 @@ func (s *Service) DeleteTriggerDefinition(c *gin.Context) {
 		return
 	}
 
-	err := s.triggerDefinitionClient.DeleteEventTriggerDefinition(nil, deleteQuery.Name, token.GetUserName(c))
+	dbEventTriggerDefinition, find, err := s.triggerDefinitionClient.GetEventTriggerDefinition(nil, deleteQuery.Name, token.GetUserName(c))
+	if err != nil {
+		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("Get event trigger definition error: %v", err), nil))
+		return
+	}
+	if !find {
+		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("not find event trigger definition"), nil))
+		return
+	}
+
+	err = s.triggerDefinitionClient.DeleteEventTriggerDefinition(nil, dbEventTriggerDefinition.Name, token.GetUserName(c))
 	if err != nil {
 		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("delete event trigger definition error: %v", err), nil))
 		return
 	}
+	s.eventProcess.DeleteTriggerCache(s.eventProcess.MakeCacheKey(dbEventTriggerDefinition.EventName, dbEventTriggerDefinition.EventVersion, dbEventTriggerDefinition.EventCreater))
 
 	c.JSON(responsehandler.Build(http.StatusOK, "", nil))
 }
