@@ -7,10 +7,11 @@ import (
 	"tiggerops/internal/register/client/actuatorclient"
 	"tiggerops/internal/register/client/pipelinedefinitionclient"
 	"tiggerops/internal/register/client/triggerdefinitionclient"
+	"tiggerops/pkg/dialer"
 	"tiggerops/pkg/eventprocess"
 )
 
-func NewService(ctx context.Context, dbClient *gorm.DB, eventProcess *eventprocess.Process) *Service {
+func NewService(ctx context.Context, dbClient *gorm.DB, eventProcess *eventprocess.Process, dialerServer *dialer.Server) *Service {
 	pipelineVersionDefinitionClient := pipelinedefinitionclient.NewPipelineDefinitionClient(dbClient)
 	triggerDefinitionClient := triggerdefinitionclient.NewTriggerDefinitionClient(dbClient)
 	actuatorClient := actuatorclient.NewActuatorsClient(dbClient)
@@ -23,6 +24,7 @@ func NewService(ctx context.Context, dbClient *gorm.DB, eventProcess *eventproce
 		triggerDefinitionClient:         triggerDefinitionClient,
 		actuatorClient:                  actuatorClient,
 
+		dialerServer: dialerServer,
 		eventProcess: eventProcess,
 	}
 	return &register
@@ -30,6 +32,7 @@ func NewService(ctx context.Context, dbClient *gorm.DB, eventProcess *eventproce
 
 type Service struct {
 	eventProcess *eventprocess.Process
+	dialerServer *dialer.Server
 
 	pipelineVersionDefinitionClient *pipelinedefinitionclient.Client
 	triggerDefinitionClient         *triggerdefinitionclient.Client
@@ -55,7 +58,6 @@ func (r *Service) Router(router *gin.RouterGroup) {
 		triggerDefinition.POST("/apply", r.ApplyTriggerDefinition)
 		triggerDefinition.DELETE("/:name", r.DeleteTriggerDefinition)
 		triggerDefinition.GET("/", r.ListMyTriggerDefinition)
-		// todo add list
 		triggerDefinition.GET("/:name/list-event-trigger", r.ListEventTrigger)
 	}
 

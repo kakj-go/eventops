@@ -34,6 +34,7 @@ func (s *Service) ListMyTriggerDefinition(c *gin.Context) {
 }
 
 func (s *Service) ListEventTrigger(c *gin.Context) {
+	// todo impl event trigger list
 	//dbTriggers, err := s.triggerDefinitionClient.ListEventTriggerDefinition(nil, triggerdefinitionclient.ListEventTriggerDefinitionQuery{
 	//	Creater: token.GetUserName(c),
 	//})

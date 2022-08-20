@@ -5,7 +5,7 @@ import (
 	"tiggerops/pkg/schema/pipeline"
 )
 
-type Actuator struct {
+type Client struct {
 	Name string `json:"name"`
 
 	Os         *Os         `yaml:"os,omitempty"`
@@ -13,26 +13,25 @@ type Actuator struct {
 	Docker     *Docker     `yaml:"docker,omitempty"`
 
 	Tunnel *Tunnel `yaml:"tunnel,omitempty"`
-	Tls    *Tls    `yaml:"tls,omitempty"`
 
 	Tags []string `yaml:"tags"`
 }
 
-func (a Actuator) GetTunnelClientID() string {
+func (a Client) GetTunnelClientID() string {
 	if a.Tunnel == nil {
 		return ""
 	}
 	return a.Tunnel.ClientId
 }
 
-func (a Actuator) GetTunnelClientToken() string {
+func (a Client) GetTunnelClientToken() string {
 	if a.Tunnel == nil {
 		return ""
 	}
 	return a.Tunnel.ClientToken
 }
 
-func (a Actuator) Check() error {
+func (a Client) Check() error {
 	if a.Name == "" {
 		return fmt.Errorf("name can not empty")
 	}
@@ -65,17 +64,13 @@ func (a Actuator) Check() error {
 		return err
 	}
 
-	if err := a.Tls.check(); err != nil {
-		return err
-	}
-
 	if len(a.Tags) == 0 {
 		return fmt.Errorf("tags can not empty")
 	}
 	return nil
 }
 
-func (a Actuator) GetType() pipeline.TaskType {
+func (a Client) GetType() pipeline.TaskType {
 	if a.Os != nil {
 		return pipeline.OsType
 	}
@@ -140,8 +135,8 @@ type Kubernetes struct {
 type Os struct {
 	User     string `json:"user"`
 	Ip       string `json:"ip"`
+	Port     string `json:"port"`
 	Password string `yaml:"password,omitempty"`
-	Rsa      string `yaml:"rsa,omitempty"`
 }
 
 type Docker struct {
@@ -164,25 +159,6 @@ func (t *Tunnel) check() error {
 	}
 	if t.ClientToken == "" {
 		return fmt.Errorf("tunnel clientToken can not empty")
-	}
-	return nil
-}
-
-type Tls struct {
-	ServerPem string `yaml:"serverPem"`
-	ServerKey string `yaml:"serverKey"`
-	ClientPem string `yaml:"clientPem"`
-}
-
-func (tls *Tls) check() error {
-	if tls == nil {
-		return nil
-	}
-	if tls.ServerKey == "" {
-		return fmt.Errorf("tls serverKey can not empty")
-	}
-	if tls.ServerPem == "" {
-		return fmt.Errorf("tls serverPem can not empty")
 	}
 	return nil
 }

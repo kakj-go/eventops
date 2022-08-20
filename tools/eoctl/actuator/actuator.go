@@ -59,7 +59,7 @@ var actuatorDeleteCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		var actuator actuator.Actuator
+		var actuator actuator.Client
 		err = yaml.Unmarshal(content, &actuator)
 		if err != nil {
 			fmt.Printf("unmarshal file %v content error: %v \n", deleteFilePath, err)

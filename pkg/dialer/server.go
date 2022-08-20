@@ -38,13 +38,25 @@ func NewServer() *Server {
 	return server
 }
 
-func (server *Server) AddAuthInfo(id, token string) {
-	server.AuthList[id] = token
+func (server *Server) AddAuthInfo(clientId, user, token string) {
+	server.l.Lock()
+	defer server.l.Unlock()
+
+	server.AuthList[fmt.Sprintf("%s/%s", user, clientId)] = token
+}
+
+func (server *Server) DeleteAuthInfo(clientId, user string) {
+	server.l.Lock()
+	defer server.l.Unlock()
+
+	delete(server.AuthList, fmt.Sprintf("%s/%s", user, clientId))
 }
 
 func (server *Server) authorizer(req *http.Request) (string, bool, error) {
-	id := req.Header.Get(IdHeader)
+	server.l.Lock()
+	defer server.l.Unlock()
 
+	id := req.Header.Get(IdHeader)
 	return id, server.AuthList[id] == req.Header.Get(AuthHeader), nil
 }
 

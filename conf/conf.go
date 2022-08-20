@@ -16,8 +16,8 @@ var conf Config
 
 type Config struct {
 	Port     string   `yaml:"port" default:"8080"`
-	Mysql    *Mysql   `yaml:"mysql"`
 	Debug    bool     `yaml:"debug" default:"false"`
+	Mysql    *Mysql   `yaml:"mysql"`
 	Uc       Uc       `yaml:"uc"`
 	Event    Event    `yaml:"event"`
 	Actuator Actuator `yaml:"actuator"`

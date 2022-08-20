@@ -44,7 +44,7 @@ func newServer() (*server, error) {
 	eventProcess := eventprocess.NewProcess(dbClient, ctx)
 
 	ucService := uc.NewService(ctx, dbClient)
-	registerService := register.NewService(ctx, dbClient, eventProcess)
+	registerService := register.NewService(ctx, dbClient, eventProcess, dialerServer)
 	eventService := event.NewService(ctx, dbClient, eventProcess)
 	actuatorService := dialerservice.NewService(ctx, dbClient, dialerServer)
 

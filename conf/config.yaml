@@ -3,24 +3,21 @@ debug: true
 mysql:
   user: root
   password: 123456
-  address: 192.168.56.4
+  address: 192.168.0.109
   port: 3306
   db: eventops
 
 actuator:
-  dialer:
-    peerID: eventops
-    peerToken: token
-#    peers:
+  printTunnelData: true
 
 event:
   process:
     bufferSize: 500
     workNum: 5
-
     triggerCacheSize: 10000
     loopLoadEventInterval: 300
     processingOverTime: 120
+
 uc:
   loginTokenExpiresTime: 315360000
   loginTokenSignature: MYSQL_SIGNATURE

@@ -33,7 +33,7 @@ type Actuator struct {
 }
 
 func (a Actuator) ToApiStructs() (apistructs.Actuator, error) {
-	var actuatorInfo actuator.Actuator
+	var actuatorInfo actuator.Client
 	err := yaml.Unmarshal([]byte(a.Content), &actuatorInfo)
 	if err != nil {
 		return apistructs.Actuator{}, err

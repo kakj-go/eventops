@@ -24,7 +24,7 @@ func (r *Service) ApplyActuator(c *gin.Context) {
 		return
 	}
 
-	var actuatorInfo actuator.Actuator
+	var actuatorInfo actuator.Client
 	err := yaml.Unmarshal([]byte(applyInfo.ActuatorContent), &actuatorInfo)
 	if err != nil {
 		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("yaml content unmarshal error: %v", err), nil))
@@ -78,7 +78,13 @@ func (r *Service) ApplyActuator(c *gin.Context) {
 				Tag:             tag,
 			})
 		}
-		return r.actuatorClient.BatchCreateActuatorTags(tx, actuatorTags)
+		err := r.actuatorClient.BatchCreateActuatorTags(tx, actuatorTags)
+		if err != nil {
+			return err
+		}
+
+		r.dialerServer.AddAuthInfo(actuatorInfo.GetTunnelClientID(), token.GetUserName(c), actuatorInfo.GetTunnelClientToken())
+		return nil
 	})
 	if err != nil {
 		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("save actuator error: %v", err), nil))
@@ -100,15 +106,25 @@ func (r *Service) DeleteActuator(c *gin.Context) {
 	}
 
 	err := r.dbClient.Transaction(func(tx *gorm.DB) error {
-		err := r.actuatorClient.DeleteActuator(nil, deleteQuery.Name, token.GetUserName(c))
+		dbActuator, find, err := r.actuatorClient.GetActuator(nil, deleteQuery.Name, token.GetUserName(c))
+		if err != nil {
+			return err
+		}
+		if !find {
+			return nil
+		}
+
+		err = r.actuatorClient.DeleteActuator(tx, dbActuator.Name, token.GetUserName(c))
 		if err != nil {
 			return err
 		}
 
-		err = r.actuatorClient.DeleteActuatorTags(nil, deleteQuery.Name, token.GetUserName(c))
+		err = r.actuatorClient.DeleteActuatorTags(tx, dbActuator.Name, token.GetUserName(c))
 		if err != nil {
 			return err
 		}
+
+		r.dialerServer.DeleteAuthInfo(dbActuator.ClientId, token.GetUserName(c))
 		return nil
 	})
 	if err != nil {
