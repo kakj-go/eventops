@@ -6,13 +6,14 @@ import (
 	"github.com/rancher/remotedialer"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	"tiggerops/pkg/dialer"
+	"tiggerops/internal/core/dialer"
 	"time"
 )
 
 var serverAddr string
 var clientID string
 var token string
+var user string
 var debug bool
 
 func auth(string, string) bool {
@@ -21,8 +22,9 @@ func auth(string, string) bool {
 
 func main() {
 	flag.StringVar(&serverAddr, "connect", "ws://192.168.0.105:8080/api/dialer/connect", "Address to connect to")
-	flag.StringVar(&clientID, "id", "docker", "Client ID")
+	flag.StringVar(&clientID, "id", "runner_tunnel", "Client ID")
 	flag.StringVar(&token, "token", "123456", "Client Token")
+	flag.StringVar(&user, "user", "kakj", "Client User")
 	flag.BoolVar(&debug, "debug", true, "Debug logging")
 	flag.Parse()
 
@@ -33,11 +35,12 @@ func main() {
 	headers := http.Header{
 		dialer.IdHeader:   []string{clientID},
 		dialer.AuthHeader: []string{token},
+		dialer.UserHeader: []string{user},
 	}
 
 	for {
 		remotedialer.ClientConnect(context.Background(), serverAddr, headers, nil, auth, nil)
-		logrus.Errorf("failed to client server: %v, restart after 5 second", serverAddr)
+		logrus.Errorf("failed to client server: %v, reclient after 5 second", serverAddr)
 		time.Sleep(5 * time.Second)
 	}
 }
