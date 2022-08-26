@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	"eventops/internal/core/dialer"
 	"flag"
 	"github.com/rancher/remotedialer"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	"tiggerops/internal/core/dialer"
 	"time"
 )
 
