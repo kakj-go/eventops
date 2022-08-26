@@ -1,17 +1,18 @@
 package dialer
 
 import (
+	"eventops/conf"
 	"fmt"
 	"github.com/rancher/remotedialer"
 	"net/http"
 	"strconv"
 	"sync"
-	"tiggerops/conf"
 	"time"
 )
 
 const AuthHeader = "eventops-API-Tunnel-Token"
 const IdHeader = "eventops-API-Tunnel-Id"
+const UserHeader = "eventops-API-Tunnel-user"
 
 type Server struct {
 	clients map[string]remotedialer.Dialer
@@ -38,11 +39,15 @@ func NewServer() *Server {
 	return server
 }
 
+func signBuild(clientId, user string) string {
+	return fmt.Sprintf("%v/%v", user, clientId)
+}
+
 func (server *Server) AddAuthInfo(clientId, user, token string) {
 	server.l.Lock()
 	defer server.l.Unlock()
 
-	server.AuthList[fmt.Sprintf("%s/%s", user, clientId)] = token
+	server.AuthList[signBuild(clientId, user)] = token
 }
 
 func (server *Server) DeleteAuthInfo(clientId, user string) {
@@ -57,14 +62,17 @@ func (server *Server) authorizer(req *http.Request) (string, bool, error) {
 	defer server.l.Unlock()
 
 	id := req.Header.Get(IdHeader)
-	return id, server.AuthList[id] == req.Header.Get(AuthHeader), nil
+	user := req.Header.Get(UserHeader)
+
+	sign := signBuild(id, user)
+	return sign, server.AuthList[sign] == req.Header.Get(AuthHeader), nil
 }
 
-func (server *Server) GetClient(clientKey, timeout string) remotedialer.Dialer {
+func (server *Server) GetClient(creater, clientKey, timeout string) remotedialer.Dialer {
 	server.l.Lock()
 	defer server.l.Unlock()
 
-	key := fmt.Sprintf("%s/%s", clientKey, timeout)
+	key := fmt.Sprintf("%s-%s/%s", creater, clientKey, timeout)
 	client := server.clients[key]
 	if client != nil {
 		return client
