@@ -2,6 +2,10 @@ package os
 
 import (
 	"context"
+	"eventops/apistructs"
+	"eventops/internal/core/actuator"
+	client "eventops/pkg/schema/actuator"
+	"eventops/pkg/schema/pipeline"
 	"fmt"
 	"github.com/melbahja/goph"
 	"github.com/rancher/remotedialer"
@@ -10,8 +14,6 @@ import (
 	"io/ioutil"
 	"net"
 	"strings"
-	"tiggerops/pkg/actuator"
-	client "tiggerops/pkg/schema/actuator"
 	"time"
 )
 
@@ -43,24 +45,24 @@ type ShellTemplateObject struct {
 	Command []string
 }
 
-func workDir(pipelineId uint64, sign string) string {
+func workDir(pipelineId string, sign string) string {
 	return fmt.Sprintf("%v/%v", pipelineId, sign)
 }
 
-func (a Actuator) Create(ctx context.Context, task *actuator.Task) (*actuator.Task, error) {
+func (a Actuator) Create(ctx context.Context, task *actuator.Job) (*actuator.Job, error) {
 	session, err := a.client.NewSession()
 	if err != nil {
 		return nil, err
 	}
-	err = session.Run(fmt.Sprintf("rm -rf %v", workDir(task.PipelineID, task.Sign)))
+	err = session.Run(fmt.Sprintf("rm -rf %v", workDir(task.PipelineId, task.TaskId)))
 	if err != nil {
 		return nil, err
 	}
-	err = session.Run(fmt.Sprintf("mkdir -p %v", workDir(task.PipelineID, task.Sign)))
+	err = session.Run(fmt.Sprintf("mkdir -p %v", workDir(task.PipelineId, task.TaskId)))
 	if err != nil {
 		return nil, err
 	}
-	pathOutput, err := session.Output(fmt.Sprintf("cd %v && pwd", workDir(task.PipelineID, task.Sign)))
+	pathOutput, err := session.Output(fmt.Sprintf("cd %v && pwd", workDir(task.PipelineId, task.TaskId)))
 	if err != nil {
 		return nil, err
 	}
@@ -81,8 +83,8 @@ func (a Actuator) Create(ctx context.Context, task *actuator.Task) (*actuator.Ta
 	return task, nil
 }
 
-func (a Actuator) createRunShell(task *actuator.Task, workdir string) error {
-	tempFile, err := ioutil.TempFile(fmt.Sprintf("%v/%v", task.PipelineID, task.Sign), runShellName)
+func (a Actuator) createRunShell(task *actuator.Job, workdir string) error {
+	tempFile, err := ioutil.TempFile(fmt.Sprintf("%v/%v", task.PipelineId, task.TaskId), runShellName)
 	if err != nil {
 		return err
 	}
@@ -101,8 +103,8 @@ func (a Actuator) createRunShell(task *actuator.Task, workdir string) error {
 	return a.client.Upload(tempFile.Name(), workdir)
 }
 
-func (a Actuator) createBashShell(task *actuator.Task, workdir string) error {
-	bashFile, err := ioutil.TempFile(fmt.Sprintf("%v/%v", task.PipelineID, task.Sign), bashShellName)
+func (a Actuator) createBashShell(task *actuator.Job, workdir string) error {
+	bashFile, err := ioutil.TempFile(fmt.Sprintf("%v/%v", task.PipelineId, task.TaskId), bashShellName)
 	if err != nil {
 		return err
 	}
@@ -115,78 +117,100 @@ func (a Actuator) createBashShell(task *actuator.Task, workdir string) error {
 	return a.client.Upload(bashFile.Name(), workdir)
 }
 
-func (a Actuator) Start(ctx context.Context, task *actuator.Task) error {
+func (a Actuator) Start(ctx context.Context, task *actuator.Job) error {
 	session, err := a.client.NewSession()
 	if err != nil {
 		return err
 	}
-	err = session.Run(fmt.Sprintf("cd %v", workDir(task.PipelineID, task.Sign)))
+	err = session.Run(fmt.Sprintf("cd %v", workDir(task.PipelineId, task.TaskId)))
 	if err != nil {
 		return err
 	}
-	output, err := session.Output(fmt.Sprintf("chmod +x ./%v && nohup ./%v > nohup.out 2>&1 &", bashShellName, bashShellName))
+	output, err := session.Output(fmt.Sprintf("chmod +x ./%v && echo '' > nohup.out  && nohup ./%v > nohup.out 2>&1 &", bashShellName, bashShellName))
 	if err != nil {
 		return err
 	}
 
-	task.InstanceSign = strings.TrimLeft(string(output), "[1]")
-	task.InstanceSign = strings.TrimSpace(task.InstanceSign)
+	task.JobSign = strings.TrimLeft(string(output), "[1]")
+	task.JobSign = strings.TrimSpace(task.JobSign)
 	return nil
 }
 
-func (a Actuator) Remove(ctx context.Context, task *actuator.Task) error {
+func (a Actuator) Remove(ctx context.Context, task *actuator.Job) error {
 	session, err := a.client.NewSession()
 	if err != nil {
 		return err
 	}
-	return session.Run(fmt.Sprintf("rm -rf %v", task.PipelineID))
+	return session.Run(fmt.Sprintf("rm -rf %v", workDir(task.PipelineId, task.TaskId)))
 }
 
-func (a Actuator) Cancel(ctx context.Context, task *actuator.Task) error {
+func (a Actuator) Cancel(ctx context.Context, task *actuator.Job) error {
 	session, err := a.client.NewSession()
 	if err != nil {
 		return err
 	}
-	return session.Run(fmt.Sprintf("kill -15 %v", task.InstanceSign))
+	return session.Run(fmt.Sprintf("kill -15 %v", task.JobSign))
 }
 
-func (a Actuator) Exist(ctx context.Context, task *actuator.Task) (bool, error) {
-	output, err := a.client.Run(fmt.Sprintf("ps -q %v | awk '{print $1}' | awk 'NR == 2'", task.InstanceSign))
+func (a Actuator) Exist(ctx context.Context, task *actuator.Job) (bool, error) {
+	var shell = `
+if [ ! -d "` + workDir(task.PipelineId, task.TaskId) + `" ]; then
+    echo "1"
+else
+    echo "0"
+fi
+`
+
+	output, err := a.client.Run(shell)
 	if err != nil {
 		return false, err
 	}
-	if strings.TrimSpace(string(output)) == task.InstanceSign {
+	if strings.TrimSpace(string(output)) == "1" {
 		return true, nil
 	}
 	return false, nil
 }
 
-func (a Actuator) Status(ctx context.Context, task *actuator.Task) (actuator.TaskStatus, error) {
+func (a Actuator) Status(ctx context.Context, task *actuator.Job) (apistructs.TaskStatus, error) {
 	session, err := a.client.NewSession()
 	if err != nil {
 		return "", err
 	}
-	err = session.Run(fmt.Sprintf("cd %v", workDir(task.PipelineID, task.Sign)))
+	outputs, err := session.Output(fmt.Sprintf("cd %v", workDir(task.PipelineId, task.TaskId)))
 	if err != nil {
 		return "", err
 	}
+	if strings.TrimSpace(string(outputs)) != "" {
+		return "", actuator.JobNotFindError
+	}
 
-	output, err := session.Output("cat exit.code")
+	var shell = `
+if [ ! -f "exit.code" ]; then
+    cat exit.code
+else
+    echo ""
+fi
+`
+	output, err := session.Output(shell)
 	if err != nil {
 		return "", err
 	}
 	switch string(output) {
 	case "0":
-		return actuator.SuccessTaskStatus, nil
+		return apistructs.SuccessTaskStatus, nil
 	case "1", "2", "126", "127", "128", "255", "130":
-		return actuator.FailedTaskStatus, nil
+		return apistructs.FailedTaskStatus, nil
 	case "15":
-		return actuator.CancelTaskStatus, nil
+		return apistructs.CancelTaskStatus, nil
 	case "":
-		return actuator.RunningTaskStatus, nil
+		return apistructs.RunningTaskStatus, nil
 	default:
-		return actuator.UnKnowTaskStatus, nil
+		return apistructs.UnKnowTaskStatus, nil
 	}
+}
+
+func (a Actuator) Type() pipeline.TaskType {
+	return pipeline.OsType
 }
 
 func NewOsClient(osConfig *client.Os, dialer remotedialer.Dialer) (*Actuator, error) {

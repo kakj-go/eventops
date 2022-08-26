@@ -3,6 +3,10 @@ package k8s
 import (
 	"bytes"
 	"context"
+	"eventops/apistructs"
+	"eventops/internal/core/actuator"
+	client "eventops/pkg/schema/actuator"
+	"eventops/pkg/schema/pipeline"
 	"fmt"
 	"github.com/rancher/remotedialer"
 	"io/ioutil"
@@ -14,10 +18,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 	"net"
-	"strconv"
 	"strings"
-	"tiggerops/pkg/actuator"
-	client "tiggerops/pkg/schema/actuator"
 )
 
 type Actuator struct {
@@ -29,12 +30,12 @@ func makeNamespace(namespaceId string) string {
 	return fmt.Sprintf("pipelines-%v", namespaceId)
 }
 
-func (a Actuator) Create(ctx context.Context, task *actuator.Task) (*actuator.Task, error) {
-	task.InstanceSign = task.Sign
+func (a Actuator) Create(ctx context.Context, task *actuator.Job) (*actuator.Job, error) {
+	task.JobSign = fmt.Sprintf("%v_%v", task.DefinitionTask.Alias, task.TaskId)
 	return task, nil
 }
 
-func (a Actuator) Start(ctx context.Context, task *actuator.Task) error {
+func (a Actuator) Start(ctx context.Context, task *actuator.Job) error {
 	command := fmt.Sprintf("echo 'task %v start'", task.DefinitionTask.Alias)
 	for _, cmd := range task.DefinitionTask.Commands {
 		command = fmt.Sprintf("%s && %s", command, cmd)
@@ -46,7 +47,7 @@ func (a Actuator) Start(ctx context.Context, task *actuator.Task) error {
 			APIVersion: "pod",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: task.InstanceSign,
+			Name: task.JobSign,
 		},
 		Spec: corev1.PodSpec{
 			RestartPolicy:         corev1.RestartPolicyNever,
@@ -64,24 +65,23 @@ func (a Actuator) Start(ctx context.Context, task *actuator.Task) error {
 		},
 	}
 
-	_, err := a.client.CoreV1().Pods(makeNamespace(strconv.FormatUint(task.PipelineID, 10))).Create(ctx, &pod, metav1.CreateOptions{})
+	_, err := a.client.CoreV1().Pods(makeNamespace(task.PipelineId)).Create(ctx, &pod, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a Actuator) Remove(ctx context.Context, task *actuator.Task) error {
-	return a.client.CoreV1().Pods(makeNamespace(strconv.FormatUint(task.PipelineID, 10))).Delete(ctx, task.InstanceSign, metav1.DeleteOptions{})
+func (a Actuator) Remove(ctx context.Context, task *actuator.Job) error {
+	return a.client.CoreV1().Pods(makeNamespace(task.PipelineId)).Delete(ctx, task.JobSign, metav1.DeleteOptions{})
 }
 
-func (a Actuator) Cancel(ctx context.Context, task *actuator.Task) error {
-
+func (a Actuator) Cancel(ctx context.Context, task *actuator.Job) error {
 	// 构造执行命令请求
 	req := a.client.CoreV1().RESTClient().Post().
 		Resource("pods").
-		Name(task.InstanceSign).
-		Namespace(makeNamespace(strconv.FormatUint(task.PipelineID, 10))).
+		Name(task.JobSign).
+		Namespace(makeNamespace(task.PipelineId)).
 		SubResource("exec").
 		VersionedParams(&corev1.PodExecOptions{
 			Command: []string{"sh", "-c", "kill -15 `ps | awk '{print $1}' | awk 'NR == 3'`"},
@@ -111,8 +111,8 @@ func (a Actuator) Cancel(ctx context.Context, task *actuator.Task) error {
 	return nil
 }
 
-func (a Actuator) Exist(ctx context.Context, task *actuator.Task) (bool, error) {
-	pod, err := a.client.CoreV1().Pods(makeNamespace(strconv.FormatUint(task.PipelineID, 10))).Get(ctx, task.InstanceSign, metav1.GetOptions{})
+func (a Actuator) Exist(ctx context.Context, task *actuator.Job) (bool, error) {
+	pod, err := a.client.CoreV1().Pods(makeNamespace(task.PipelineId)).Get(ctx, task.JobSign, metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -122,28 +122,32 @@ func (a Actuator) Exist(ctx context.Context, task *actuator.Task) (bool, error) 
 	return false, nil
 }
 
-func (a Actuator) Status(ctx context.Context, task *actuator.Task) (actuator.TaskStatus, error) {
-	pod, err := a.client.CoreV1().Pods(makeNamespace(strconv.FormatUint(task.PipelineID, 10))).Get(ctx, task.InstanceSign, metav1.GetOptions{})
+func (a Actuator) Type() pipeline.TaskType {
+	return pipeline.K8sType
+}
+
+func (a Actuator) Status(ctx context.Context, task *actuator.Job) (apistructs.TaskStatus, error) {
+	pod, err := a.client.CoreV1().Pods(makeNamespace(task.PipelineId)).Get(ctx, task.JobSign, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 	if pod == nil {
-		return "", actuator.TaskNotFindError
+		return "", actuator.JobNotFindError
 	}
 
-	var result actuator.TaskStatus
+	var result apistructs.TaskStatus
 
 	switch pod.Status.Phase {
 	case corev1.PodPending:
-		result = actuator.RunningTaskStatus
+		result = apistructs.RunningTaskStatus
 	case corev1.PodRunning:
-		result = actuator.RunningTaskStatus
+		result = apistructs.RunningTaskStatus
 	case corev1.PodSucceeded:
-		result = actuator.SuccessTaskStatus
+		result = apistructs.SuccessTaskStatus
 	case corev1.PodFailed:
-		result = actuator.FailedTaskStatus
+		result = apistructs.FailedTaskStatus
 	default:
-		result = actuator.UnKnowTaskStatus
+		result = apistructs.UnKnowTaskStatus
 	}
 	return result, nil
 }

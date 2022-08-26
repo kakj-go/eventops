@@ -2,6 +2,10 @@ package docker
 
 import (
 	"context"
+	"eventops/apistructs"
+	"eventops/internal/core/actuator"
+	actuatorclient "eventops/pkg/schema/actuator"
+	"eventops/pkg/schema/pipeline"
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -12,8 +16,6 @@ import (
 	"golang.org/x/crypto/ssh"
 	"net"
 	"net/http"
-	"tiggerops/pkg/actuator"
-	actuatorclient "tiggerops/pkg/schema/actuator"
 	"time"
 )
 
@@ -79,7 +81,7 @@ BUILD:
 	}, nil
 }
 
-func (a *Actuator) Create(ctx context.Context, task *actuator.Task) (*actuator.Task, error) {
+func (a *Actuator) Create(ctx context.Context, task *actuator.Job) (*actuator.Job, error) {
 	out, err := a.client.ImagePull(ctx, task.DefinitionTask.Image, types.ImagePullOptions{})
 	if err != nil {
 		return nil, err
@@ -94,21 +96,21 @@ func (a *Actuator) Create(ctx context.Context, task *actuator.Task) (*actuator.T
 	resp, err := a.client.ContainerCreate(ctx, &container.Config{
 		Image: task.DefinitionTask.Image,
 		Cmd:   []string{command},
-	}, nil, nil, nil, task.Sign)
+	}, nil, nil, nil, task.TaskId)
 	if err != nil {
 		return nil, err
 	}
 
-	task.InstanceSign = resp.ID
+	task.JobSign = resp.ID
 	return task, nil
 }
 
-func (a *Actuator) Start(ctx context.Context, task *actuator.Task) error {
-	return a.client.ContainerStart(ctx, task.InstanceSign, types.ContainerStartOptions{})
+func (a *Actuator) Start(ctx context.Context, task *actuator.Job) error {
+	return a.client.ContainerStart(ctx, task.JobSign, types.ContainerStartOptions{})
 }
 
-func (a *Actuator) Exist(ctx context.Context, task *actuator.Task) (bool, error) {
-	containers, err := a.getContainers(ctx, task.InstanceSign)
+func (a *Actuator) Exist(ctx context.Context, task *actuator.Job) (bool, error) {
+	containers, err := a.getContainers(ctx, task.JobSign)
 	if err != nil {
 		return false, err
 	}
@@ -118,39 +120,46 @@ func (a *Actuator) Exist(ctx context.Context, task *actuator.Task) (bool, error)
 	return false, nil
 }
 
-func (a *Actuator) Remove(ctx context.Context, task *actuator.Task) error {
-	return a.client.ContainerRemove(ctx, task.InstanceSign, types.ContainerRemoveOptions{})
+func (a *Actuator) Remove(ctx context.Context, task *actuator.Job) error {
+	return a.client.ContainerRemove(ctx, task.JobSign, types.ContainerRemoveOptions{})
 }
 
-func (a *Actuator) Cancel(ctx context.Context, task *actuator.Task) error {
-	return a.client.ContainerStop(ctx, task.InstanceSign, nil)
+func (a *Actuator) Cancel(ctx context.Context, task *actuator.Job) error {
+	return a.client.ContainerStop(ctx, task.JobSign, nil)
 }
 
-func (a *Actuator) Status(ctx context.Context, task *actuator.Task) (actuator.TaskStatus, error) {
-	containers, err := a.getContainers(ctx, task.InstanceSign)
+func (a Actuator) Type() pipeline.TaskType {
+	return pipeline.DockerType
+}
+
+func (a *Actuator) Status(ctx context.Context, task *actuator.Job) (apistructs.TaskStatus, error) {
+	containers, err := a.getContainers(ctx, task.JobSign)
 	if err != nil {
 		return "", err
 	}
 	if len(containers) == 0 {
-		return "", actuator.TaskNotFindError
+		return "", actuator.JobNotFindError
 	}
+
 	var dockerContainer = containers[0]
-	var resultStatus actuator.TaskStatus
+	var resultStatus apistructs.TaskStatus
 	switch dockerContainer.State {
 	case "created":
-		resultStatus = actuator.CreatedTaskStatus
+		resultStatus = apistructs.CreatedTaskStatus
 	case "restarting", "running":
-		resultStatus = actuator.RunningTaskStatus
+		resultStatus = apistructs.RunningTaskStatus
 	case "paused":
-		resultStatus = actuator.PausedTaskStatus
-	case "exited", "dead", "removing":
+		resultStatus = apistructs.RunningTaskStatus
+	case "dead":
+		resultStatus = apistructs.FailedTaskStatus
+	case "exited":
 		if dockerContainer.Status == "Exit 0" {
-			resultStatus = actuator.SuccessTaskStatus
+			resultStatus = apistructs.SuccessTaskStatus
 		} else {
-			resultStatus = actuator.FailedTaskStatus
+			resultStatus = apistructs.FailedTaskStatus
 		}
 	default:
-		resultStatus = actuator.UnKnowTaskStatus
+		resultStatus = apistructs.UnKnowTaskStatus
 	}
 	return resultStatus, nil
 }
