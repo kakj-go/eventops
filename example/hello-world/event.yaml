@@ -1,0 +1,9 @@
+name: hello-world-eoctl-run
+version: 1.0
+
+values:
+  user: kakj
+  email: 2357431193@qq.com
+
+timestamp: 1661422308
+users: ["kakj"]

@@ -1,0 +1,17 @@
+name: eoctl-run-hello-world-pipeline
+
+eventName: hello-world-eoctl-run
+eventCreater: kakj
+eventVersion: 1.0
+
+pipelines:
+  - image: hello-world:1.0
+    filters:
+      - expr: values.email
+        matches:
+          - 2357431193@qq.com
+
+filters:
+  - expr: values.user
+    matches:
+      - kakj

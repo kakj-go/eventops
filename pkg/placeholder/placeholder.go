@@ -34,7 +34,7 @@ const Right = " }}"
 type Type string
 
 func (t Type) String() string {
-	return t
+	return string(t)
 }
 
 const (

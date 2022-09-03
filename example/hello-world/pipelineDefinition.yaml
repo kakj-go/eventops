@@ -1,0 +1,20 @@
+version: 1.0
+name: hello-world
+
+actuatorSelector:
+  tags:
+    - os-runner
+
+dag:
+  - name: os-echo
+    needs:
+      - root
+
+tasks:
+  - alias: os-echo
+    type: os
+    actuatorSelector:
+      tags:
+        - os-runner
+    commands:
+      - echo "hello world"
