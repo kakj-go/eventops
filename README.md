@@ -8,13 +8,13 @@ eventops 是一个基于事件驱动的流水线工具，其目的是为了事�
 eventops 目前有以下三个工具
 
 ## eventops
-作为 server 端, 内部有 uc register pipeline event dialer 等五类 api
+server 端, 内部有 uc register pipeline event dialer 等五类 api
 
 ## eoctl
-用于和 server 进行连接操作。一种 C/S 架构类似 kubectl 和 kubernetes
+用于和 server 进行连接操作, 一种 C/S 架构类似 kubectl 和 kubernetes
 
 ## client
-在没有公网 ip 的 actuator 中启动，用于和 eventops server 建立 websocket 连接，从而 server 可以管理这种 actuator
+当 server 端无法直接访问 actuator 时候用作类似 vpn 功能的反向连接通道
 
 # 快速开始
 
