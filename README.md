@@ -70,6 +70,8 @@ make xxx
 可以用 `eventops --configFile=B:\workspace\golang\eventops\conf\config.yaml` 来声明配置文件的位置
 
 #### config.yaml
+> 注意: 如果需要使用文件类型的事件内容，文件类型的入参，文件类型的出参, 文件类型的上下文参数则需要配置 minio
+
 ```yaml
 # 启动的端口 (必填)
 port: 8080
@@ -88,7 +90,7 @@ mysql:
   port: 3306
   db: eventops
 
-# 如果需要使用文件类型的 outputs inputs contexts，则需要配置
+# 如果需要使用文件类型的事件内容，文件类型的入参，文件类型的出参, 文件类型的上下文参数则需要配置
 #minio:
 #  # minio 地址
 #  server: http://127.0.0.1:9000 
