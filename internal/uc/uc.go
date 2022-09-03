@@ -2,9 +2,9 @@ package uc
 
 import (
 	"context"
+	"eventops/internal/core/client/userclient"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"tiggerops/internal/uc/client/userclient"
 )
 
 type Service struct {

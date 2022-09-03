@@ -1,27 +1,23 @@
 package register
 
 import (
+	"eventops/apistructs"
+	"eventops/internal/core/client/triggerdefinitionclient"
+	"eventops/internal/core/token"
+	"eventops/pkg/responsehandler"
+	"eventops/pkg/schema/event"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v3"
 	"net/http"
-	"tiggerops/apistructs"
-	"tiggerops/internal/register/client/triggerdefinitionclient"
-	"tiggerops/pkg/responsehandler"
-	"tiggerops/pkg/schema/event"
-	"tiggerops/pkg/token"
 )
-
-type ApplyTriggerRequest struct {
-	TriggerContent string `json:"triggerContent"`
-}
 
 func (s *Service) ListMyTriggerDefinition(c *gin.Context) {
 	dbTriggers, err := s.triggerDefinitionClient.ListEventTriggerDefinition(nil, triggerdefinitionclient.ListEventTriggerDefinitionQuery{
 		Creater: token.GetUserName(c),
 	})
 	if err != nil {
-		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("failed to list trigger list error: %v", err), nil))
+		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("failed to list event trigger list error: %v", err), nil))
 		return
 	}
 
@@ -33,22 +29,29 @@ func (s *Service) ListMyTriggerDefinition(c *gin.Context) {
 	c.JSON(responsehandler.Build(http.StatusOK, "", result))
 }
 
-func (s *Service) ListEventTrigger(c *gin.Context) {
-	// todo impl event trigger list
-	//dbTriggers, err := s.triggerDefinitionClient.ListEventTriggerDefinition(nil, triggerdefinitionclient.ListEventTriggerDefinitionQuery{
-	//	Creater: token.GetUserName(c),
-	//})
-	//if err != nil {
-	//	c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("failed to list trigger list error: %v", err), nil))
-	//	return
-	//}
-	//
-	//var result []apistructs.EventTriggerDefinition
-	//for _, trigger := range dbTriggers {
-	//	result = append(result, trigger.ToApiStructs())
-	//}
-	//
-	//c.JSON(responsehandler.Build(http.StatusOK, "", result))
+//type CancelPipelineQuery struct {
+//	TriggerName string
+//}
+//
+//func (s *Service) ListEventTrigger(c *gin.Context) {
+//	dbTriggers, err := s.triggerDefinitionClient.ListEventTriggerDefinition(nil, triggerdefinitionclient.ListEventTriggerDefinitionQuery{
+//		Creater: token.GetUserName(c),
+//	})
+//	if err != nil {
+//		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("failed to list trigger list error: %v", err), nil))
+//		return
+//	}
+//
+//	var result []apistructs.EventTriggerDefinition
+//	for _, trigger := range dbTriggers {
+//		result = append(result, trigger.ToApiStructs())
+//	}
+//
+//	c.JSON(responsehandler.Build(http.StatusOK, "", result))
+//}
+
+type ApplyTriggerRequest struct {
+	TriggerContent string `json:"triggerContent"`
 }
 
 func (s *Service) ApplyTriggerDefinition(c *gin.Context) {
@@ -65,15 +68,22 @@ func (s *Service) ApplyTriggerDefinition(c *gin.Context) {
 		return
 	}
 
+	if err := trigger.Mutating(token.GetUserName(c)); err != nil {
+		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, err.Error(), nil))
+		return
+	}
+
 	if err := trigger.Check(token.GetUserName(c)); err != nil {
 		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, err.Error(), nil))
 		return
 	}
 
-	if err := trigger.Mutating(token.GetUserName(c)); err != nil {
+	newContent, err := yaml.Marshal(trigger)
+	if err != nil {
 		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, err.Error(), nil))
 		return
 	}
+	applyInfo.TriggerContent = string(newContent)
 
 	triggerDefinition, find, err := s.triggerDefinitionClient.GetEventTriggerDefinition(nil, trigger.Name, token.GetUserName(c))
 	if err != nil {

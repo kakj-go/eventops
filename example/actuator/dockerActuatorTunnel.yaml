@@ -1,0 +1,12 @@
+name: docker-runner-with-tunnel
+
+docker:
+  ip: 127.0.0.1
+  port: 2375
+
+tunnel:
+  clientId: runner_tunnel
+  clientToken: 123456
+
+tags:
+  - docker-runner-with-tunnel

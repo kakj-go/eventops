@@ -1,6 +1,10 @@
 package apistructs
 
-import "fmt"
+import (
+	"fmt"
+	"gorm.io/gorm"
+	"time"
+)
 
 type EventStatus string
 
@@ -28,6 +32,20 @@ type Event struct {
 
 	Timestamp    int64    `json:"timestamp"`
 	SupportUsers []string `json:"users"`
+}
+
+type EventDetail struct {
+	Id            uint64      `json:"id"`
+	Name          string      `json:"name"`
+	Version       string      `json:"version"`
+	Content       string      `json:"content"`
+	Creater       string      `json:"creater"`
+	Status        EventStatus `json:"status"`
+	StatusMessage string      `json:"statusMessage"`
+
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `json:"deletedAt"`
 }
 
 func (event Event) Check() error {

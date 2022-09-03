@@ -1,9 +1,9 @@
 package event
 
 import (
+	"eventops/apistructs"
+	"eventops/pkg/schema/pipeline"
 	"fmt"
-	"tiggerops/apistructs"
-	"tiggerops/pkg/schema/pipeline"
 )
 
 type TriggerPipeline struct {

@@ -2,16 +2,16 @@ package trigger
 
 import (
 	"encoding/json"
+	"eventops/apistructs"
+	"eventops/internal/core/token"
+	"eventops/pkg/schema/event"
+	"eventops/tools/eoctl/conf"
+	"eventops/tools/eoctl/login"
 	"fmt"
 	"github.com/guonaihong/gout"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 	"os"
-	"tiggerops/apistructs"
-	"tiggerops/pkg/schema/event"
-	"tiggerops/pkg/token"
-	"tiggerops/tools/eoctl/conf"
-	"tiggerops/tools/eoctl/login"
 	"time"
 )
 
@@ -138,7 +138,7 @@ func listMyTriggerDefinition(user *conf.UserInfo) ([]apistructs.EventTriggerDefi
 		return nil, err
 	}
 	if resp.Status != 200 {
-		return nil, fmt.Errorf("list my trigger definition status: %v, msg %s", resp.Status, resp.Msg)
+		return nil, fmt.Errorf("list my trigger definition status: %v, msg: %s", resp.Status, resp.Msg)
 	}
 
 	return resp.Data, nil

@@ -8,7 +8,7 @@ import (
 )
 
 type Actuator interface {
-	Type() pipeline.TaskType
+	Type() apistructs.TaskType
 
 	Create(context.Context, *Job) (*Job, error)
 	Start(context.Context, *Job) error
@@ -22,11 +22,13 @@ type Actuator interface {
 var JobNotFindError = fmt.Errorf("task not find")
 
 type Job struct {
-	PipelineId     string
-	TaskId         string
+	PipelineId string
+	TaskId     string
+
+	PreCommands    []string
 	DefinitionTask *pipeline.Task
+	NextCommands   []string
 
 	JobSign string
-	Errors  []string
-	Waring  []string
+	Error   string
 }

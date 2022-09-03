@@ -1,12 +1,12 @@
 package conf
 
 import (
+	"eventops/apistructs"
 	"fmt"
 	"github.com/mitchellh/go-homedir"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os"
-	"tiggerops/apistructs"
 )
 
 func NewConfig() (*Config, error) {

@@ -1,6 +1,6 @@
 package main
 
-import "tiggerops/tools/eoctl/root"
+import "eventops/tools/eoctl/root"
 
 func main() {
 	root.Execute()

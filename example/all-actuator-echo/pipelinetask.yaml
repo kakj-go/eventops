@@ -1,0 +1,21 @@
+version: 1.1
+name: os-echo
+
+actuatorSelector:
+  tags:
+    - os-runner-with-tunnel
+
+dag:
+  - name: echo
+    needs:
+      - root
+
+tasks:
+  - alias: echo
+    type: os
+    image: busybox
+    actuatorSelector:
+      tags:
+        - not-have-this-tag-actuator
+    commands:
+      - echo "hello world"

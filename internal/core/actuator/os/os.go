@@ -5,13 +5,10 @@ import (
 	"eventops/apistructs"
 	"eventops/internal/core/actuator"
 	client "eventops/pkg/schema/actuator"
-	"eventops/pkg/schema/pipeline"
 	"fmt"
 	"github.com/melbahja/goph"
 	"github.com/rancher/remotedialer"
 	"golang.org/x/crypto/ssh"
-	"html/template"
-	"io/ioutil"
 	"net"
 	"strings"
 	"time"
@@ -21,23 +18,15 @@ type Actuator struct {
 	client goph.Client
 }
 
-const bashShellName = "bash.sh"
+const nohupShellName = "nohup.sh"
 const runShellName = "run.sh"
 
-var runShellTemplate = `
-{{.Bash}}
-
-{{range $index, $value := .Command}}
-{{$value}}
-{{end}}
-`
-
-var bashShell = `
+var nohupShell = `
 #!/bin/bash
-chmod +x ./run.sh
-./run.sh
-code=$?
-echo $code > exit.code
+( 
+nohup ./run.sh > nohup.log 2>&1
+echo "$?" > exit.code
+) &
 `
 
 type ShellTemplateObject struct {
@@ -46,36 +35,29 @@ type ShellTemplateObject struct {
 }
 
 func workDir(pipelineId string, sign string) string {
-	return fmt.Sprintf("%v/%v", pipelineId, sign)
+	return fmt.Sprintf("pipelines/%v/tasks/%v", pipelineId, sign)
 }
 
 func (a Actuator) Create(ctx context.Context, task *actuator.Job) (*actuator.Job, error) {
-	session, err := a.client.NewSession()
-	if err != nil {
-		return nil, err
-	}
-	err = session.Run(fmt.Sprintf("rm -rf %v", workDir(task.PipelineId, task.TaskId)))
-	if err != nil {
-		return nil, err
-	}
-	err = session.Run(fmt.Sprintf("mkdir -p %v", workDir(task.PipelineId, task.TaskId)))
-	if err != nil {
-		return nil, err
-	}
-	pathOutput, err := session.Output(fmt.Sprintf("cd %v && pwd", workDir(task.PipelineId, task.TaskId)))
-	if err != nil {
-		return nil, err
-	}
-	if string(pathOutput) == "" {
-		return nil, fmt.Errorf("work path name can not empty")
-	}
-
-	err = a.createRunShell(task, string(pathOutput))
+	exist, err := a.Exist(ctx, task)
 	if err != nil {
 		return nil, err
 	}
 
-	err = a.createBashShell(task, string(pathOutput))
+	if !exist {
+		command := fmt.Sprintf("mkdir -p %v", workDir(task.PipelineId, task.TaskId))
+		_, err := a.client.RunContext(ctx, command)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = a.createRunShell(ctx, task)
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.createNohupShell(ctx, task)
 	if err != nil {
 		return nil, err
 	}
@@ -83,73 +65,71 @@ func (a Actuator) Create(ctx context.Context, task *actuator.Job) (*actuator.Job
 	return task, nil
 }
 
-func (a Actuator) createRunShell(task *actuator.Job, workdir string) error {
-	tempFile, err := ioutil.TempFile(fmt.Sprintf("%v/%v", task.PipelineId, task.TaskId), runShellName)
-	if err != nil {
-		return err
+func (a Actuator) createRunShell(ctx context.Context, task *actuator.Job) error {
+
+	var command = "#!/bin/bash\n"
+	command += fmt.Sprintf("echo $$ > nohup.pid \n")
+
+	for _, cmd := range task.PreCommands {
+		command += fmt.Sprintf("%v\n", cmd)
 	}
-	defer tempFile.Close()
-	shellTpl, err := template.New("shell").Parse(runShellTemplate)
-	if err != nil {
-		return err
+	for _, cmd := range task.DefinitionTask.Commands {
+		command += fmt.Sprintf("%v\n", cmd)
 	}
-	err = shellTpl.Execute(tempFile, ShellTemplateObject{
-		Bash:    "#!/bin/bash",
-		Command: task.DefinitionTask.Commands,
-	})
-	if err != nil {
-		return err
+	for _, cmd := range task.NextCommands {
+		command += fmt.Sprintf("%v\n", cmd)
 	}
-	return a.client.Upload(tempFile.Name(), workdir)
+
+	outputs, err := a.client.RunContext(ctx, fmt.Sprintf("cd %v && touch %v && chmod +x %v && cat > %v <<'EOF'\n%v", workDir(task.PipelineId, task.TaskId), runShellName, runShellName, runShellName, command))
+	if err != nil {
+		return fmt.Errorf("error %v, output: %v", err, string(outputs))
+	}
+	return nil
 }
 
-func (a Actuator) createBashShell(task *actuator.Job, workdir string) error {
-	bashFile, err := ioutil.TempFile(fmt.Sprintf("%v/%v", task.PipelineId, task.TaskId), bashShellName)
+func (a Actuator) createNohupShell(ctx context.Context, task *actuator.Job) error {
+	outputs, err := a.client.RunContext(ctx, fmt.Sprintf("cd %v && echo '%v' > %v && chmod +x %v", workDir(task.PipelineId, task.TaskId), nohupShell, nohupShellName, nohupShellName))
 	if err != nil {
-		return err
-	}
-	defer bashFile.Close()
-	_, err = bashFile.WriteString(bashShell)
-	if err != nil {
-		return err
+		return fmt.Errorf("error %v, output: %v", err, string(outputs))
 	}
 
-	return a.client.Upload(bashFile.Name(), workdir)
+	return nil
 }
-
 func (a Actuator) Start(ctx context.Context, task *actuator.Job) error {
-	session, err := a.client.NewSession()
-	if err != nil {
-		return err
-	}
-	err = session.Run(fmt.Sprintf("cd %v", workDir(task.PipelineId, task.TaskId)))
-	if err != nil {
-		return err
-	}
-	output, err := session.Output(fmt.Sprintf("chmod +x ./%v && echo '' > nohup.out  && nohup ./%v > nohup.out 2>&1 &", bashShellName, bashShellName))
+	output, err := a.client.RunContext(ctx, fmt.Sprintf("cd %v && nohup ./%v > /dev/null 2>&1 &", workDir(task.PipelineId, task.TaskId), nohupShellName))
 	if err != nil {
 		return err
 	}
 
-	task.JobSign = strings.TrimLeft(string(output), "[1]")
-	task.JobSign = strings.TrimSpace(task.JobSign)
+	output, err = a.client.Run(fmt.Sprintf("cat %v/%v", workDir(task.PipelineId, task.TaskId), "nohup.pid"))
+	if err != nil {
+		return err
+	}
+
+	task.JobSign = strings.TrimSpace(string(output))
 	return nil
 }
 
 func (a Actuator) Remove(ctx context.Context, task *actuator.Job) error {
-	session, err := a.client.NewSession()
-	if err != nil {
-		return err
-	}
-	return session.Run(fmt.Sprintf("rm -rf %v", workDir(task.PipelineId, task.TaskId)))
+	_, err := a.client.RunContext(ctx, fmt.Sprintf("rm -rf %v", workDir(task.PipelineId, task.TaskId)))
+	return err
 }
 
 func (a Actuator) Cancel(ctx context.Context, task *actuator.Job) error {
-	session, err := a.client.NewSession()
+	status, err := a.Status(ctx, task)
 	if err != nil {
 		return err
 	}
-	return session.Run(fmt.Sprintf("kill -15 %v", task.JobSign))
+
+	if !status.IsDoneStatus() {
+		// todo run.sh 中正在执行的这条命令是不会被中止的，这里中止的只是 run.sh 这个脚本
+		// 是否需要一个脚本递归的将 run.sh 的 pid 下的所有子进程都中止掉
+		_, err := a.client.RunContext(ctx, fmt.Sprintf("kill -15 %v", task.JobSign))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (a Actuator) Exist(ctx context.Context, task *actuator.Job) (bool, error) {
@@ -161,56 +141,60 @@ else
 fi
 `
 
-	output, err := a.client.Run(shell)
+	output, err := a.client.RunContext(ctx, shell)
 	if err != nil {
 		return false, err
 	}
 	if strings.TrimSpace(string(output)) == "1" {
-		return true, nil
+		return false, nil
 	}
-	return false, nil
+	return true, nil
 }
 
 func (a Actuator) Status(ctx context.Context, task *actuator.Job) (apistructs.TaskStatus, error) {
-	session, err := a.client.NewSession()
+	exist, err := a.Exist(ctx, task)
 	if err != nil {
 		return "", err
 	}
-	outputs, err := session.Output(fmt.Sprintf("cd %v", workDir(task.PipelineId, task.TaskId)))
-	if err != nil {
-		return "", err
-	}
-	if strings.TrimSpace(string(outputs)) != "" {
+	if !exist {
 		return "", actuator.JobNotFindError
 	}
 
 	var shell = `
 if [ ! -f "exit.code" ]; then
-    cat exit.code
+	echo ""
 else
-    echo ""
-fi
+    cat exit.code
+fi;
 `
-	output, err := session.Output(shell)
+	command := fmt.Sprintf("cd %v", workDir(task.PipelineId, task.TaskId))
+	command = fmt.Sprintf("%s && %s", command, shell)
+
+	output, err := a.client.RunContext(ctx, command)
 	if err != nil {
 		return "", err
 	}
-	switch string(output) {
+
+	code := strings.TrimSpace(string(output))
+	switch code {
 	case "0":
 		return apistructs.SuccessTaskStatus, nil
 	case "1", "2", "126", "127", "128", "255", "130":
+		task.Error = fmt.Sprintf("Exited (%v)", code)
 		return apistructs.FailedTaskStatus, nil
 	case "15":
+		task.Error = fmt.Sprintf("Exited (%v)", code)
 		return apistructs.CancelTaskStatus, nil
 	case "":
 		return apistructs.RunningTaskStatus, nil
 	default:
+		task.Error = fmt.Sprintf("Exited (%v)", code)
 		return apistructs.UnKnowTaskStatus, nil
 	}
 }
 
-func (a Actuator) Type() pipeline.TaskType {
-	return pipeline.OsType
+func (a Actuator) Type() apistructs.TaskType {
+	return apistructs.OsType
 }
 
 func NewOsClient(osConfig *client.Os, dialer remotedialer.Dialer) (*Actuator, error) {

@@ -1,0 +1,106 @@
+version: 1.0
+name: mix-pipeline
+
+actuatorSelector:
+  tags:
+    - os-runner
+    - docker-runner
+    - k8s-runner
+
+inputs:
+  - name: echo_env_value
+    type: env
+  - name: echo_file_value
+    type: file
+
+contexts:
+  - name: context_env_value
+    type: env
+  - name: context_file_value
+    type: file
+
+dag:
+  - name: os-output-context
+    needs:
+      - root
+  - name: pipeline-echo-input
+    needs:
+      - root
+  - name: pipeline-echo-output
+    needs:
+      - os-output-context
+  - name: pipeline-echo-context
+    needs:
+      - os-output-context
+  - name: pipeline-echo-pipeline-output
+    needs:
+      - pipeline-echo-output
+
+tasks:
+  # 打印出参，并且出参设置到全局变量中
+  - alias: os-output-context
+    type: os
+    outputs:
+      - name: context_env_output
+        value: contextEnvValue
+        type: env
+        setToContext: context_env_value
+      - name: context_file_output
+        value: $contextFile
+        type: file
+        setToContext: context_file_value
+    commands:
+      - echo "context file value" > contextFile
+      - export contextEnvValue='context env value'
+      - export contextFile=`pwd`/contextFile
+
+  # 使用当前流水线的 inputs 的值作为流水线任务入参的值
+  - alias: pipeline-echo-input
+    type: pipeline
+    image: mix-pipeline-task1:1.0
+    inputs:
+      - name: env
+        value: ${{ inputs.echo_env_value }}
+      - name: file
+        value: ${{ inputs.echo_file_value }}
+
+# 使用 os-output-context task 的 outputs 的值作为流水线任务入参的值，并且将流水线任务的出参上报
+  - alias: pipeline-echo-output
+    type: pipeline
+    image: mix-pipeline-task1:1.0
+    outputs:
+      - name: pipeline-env-output
+        value: docker-env-output
+        type: env
+      - name: pipeline-file-output
+        value: docker-file-output
+        type: file
+    inputs:
+      - name: env
+        value: ${{ outputs.os-output-context.context_env_output }}
+      - name: file
+        value: ${{ outputs.os-output-context.context_file_output }}
+
+# 使用当前流水线的 contexts 的值作为流水线任务入参的值
+  - alias: pipeline-echo-context
+    type: pipeline
+    image: mix-pipeline-task1:1.0
+    inputs:
+      - name: env
+        value: ${{ contexts.context_env_value }}
+      - name: file
+        value: ${{ contexts.context_file_value }}
+
+# 使用之前的流水线任务的出参作为流水线任务入参的值
+  - alias: pipeline-echo-pipeline-output
+    type: pipeline
+    image: mix-pipeline-task1:1.0
+    inputs:
+      - name: env
+        value: ${{ outputs.pipeline-echo-output.pipeline-env-output }}
+      - name: file
+        value: ${{ outputs.pipeline-echo-output.pipeline-file-output }}
+
+
+
+

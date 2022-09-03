@@ -1,0 +1,17 @@
+name: eoctl-run
+version: 1.0
+
+values:
+  user: kakj
+  email: 2357431193@qq.com
+
+files:
+  testFile:
+    value: www.google.com
+    type: minio
+
+labels:
+  testLabel: label-value
+
+timestamp: 1661422308
+users: ["kakj"]

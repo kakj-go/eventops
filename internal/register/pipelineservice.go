@@ -1,16 +1,16 @@
 package register
 
 import (
+	"eventops/apistructs"
+	"eventops/internal/core/client/pipelinedefinitionclient"
+	"eventops/internal/core/token"
+	"eventops/pkg/responsehandler"
+	"eventops/pkg/schema/pipeline"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v3"
 	"gorm.io/gorm"
 	"net/http"
-	"tiggerops/apistructs"
-	"tiggerops/internal/register/client/pipelinedefinitionclient"
-	"tiggerops/pkg/responsehandler"
-	"tiggerops/pkg/schema/pipeline"
-	"tiggerops/pkg/token"
 )
 
 type PipelineNameVersionUri struct {
@@ -303,13 +303,13 @@ func (r *Service) getPipelineTaskYmlDefinition(creater string, pipelineTypeTasks
 func buildPipelineVersionQuery(user string, task pipeline.Task) pipelinedefinitionclient.PipelineVersionQuery {
 	query := pipelinedefinitionclient.PipelineVersionQuery{}
 
-	if task.Type != pipeline.PipeType {
+	if task.Type != apistructs.PipeType {
 		return query
 	}
 
-	query.Name = task.GetPipelineTypeTaskName()
-	query.Version = task.GetPipelineTypeTaskVersion()
-	query.Creater = task.GetPipelineTypeTaskCreater()
+	query.Name = task.GetPipelineName()
+	query.Version = task.GetPipelineVersion()
+	query.Creater = task.GetPipelineCreater()
 
 	if query.Creater == "" {
 		query.Creater = user

@@ -1,0 +1,22 @@
+version: 1.0
+name: mix-pipeline-task2
+
+inputs:
+  - name: input-env
+    type: env
+  - name: input-file
+    type: file
+
+dag:
+  - name: print-input
+    needs:
+      - root
+
+tasks:
+  # k8s 任务打印入参
+  - alias: print-input
+    type: k8s
+    image: kakj/mc
+    commands:
+      - echo "${{ inputs.input-env }}"
+      - cat ${{ inputs.input-file }}

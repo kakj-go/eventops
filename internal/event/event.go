@@ -2,10 +2,10 @@ package event
 
 import (
 	"context"
+	"eventops/internal/core/client/eventclient"
+	"eventops/internal/core/eventprocess"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"tiggerops/internal/event/client/eventclient"
-	"tiggerops/pkg/eventprocess"
 )
 
 type Service struct {
@@ -34,9 +34,9 @@ func (s *Service) Router(router *gin.RouterGroup) {
 }
 
 func (s *Service) Run() error {
-	s.process.Run()
-	s.process.LoopLoadEvent()
-	return nil
+	s.process.ProcessEvent()
+	go s.process.LoopLoadProcessingEventToPass()
+	return s.process.LoadPassEventTriggerToProcess()
 }
 
 func (s *Service) Name() string {

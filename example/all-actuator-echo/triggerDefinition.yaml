@@ -1,0 +1,18 @@
+name: eoctl-run-all-actuator-type-echo
+
+eventName: eoctl-run
+eventCreater: kakj
+eventVersion: 1.0
+
+pipelines:
+  - image: os-echo:1.1
+  - image: all-actuator-type-echo:1.0
+    filters:
+      - expr: values.email
+        matches:
+          - 2357431193@qq.com
+
+filters:
+  - expr: values.user
+    matches:
+      - kakj

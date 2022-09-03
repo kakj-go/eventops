@@ -1,8 +1,8 @@
 package main
 
 import (
+	"eventops/conf"
 	log "github.com/sirupsen/logrus"
-	"tiggerops/conf"
 )
 
 func main() {

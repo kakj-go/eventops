@@ -1,10 +1,13 @@
 package pipeline
 
-import "fmt"
+import (
+	"eventops/apistructs"
+	"fmt"
+)
 
 type Context struct {
-	Name string    `yaml:"name,omitempty"`
-	Type ValueType `yaml:"type,omitempty"`
+	Name string               `yaml:"name,omitempty"`
+	Type apistructs.ValueType `yaml:"type,omitempty"`
 }
 
 func (c Context) check() error {

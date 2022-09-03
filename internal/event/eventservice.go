@@ -2,13 +2,13 @@ package event
 
 import (
 	"encoding/json"
+	"eventops/apistructs"
+	"eventops/internal/core/client/eventclient"
+	"eventops/internal/core/token"
+	"eventops/pkg/responsehandler"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"tiggerops/apistructs"
-	"tiggerops/internal/event/client/eventclient"
-	"tiggerops/pkg/responsehandler"
-	"tiggerops/pkg/token"
 )
 
 func (s *Service) send(c *gin.Context) {

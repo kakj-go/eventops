@@ -15,12 +15,22 @@ func LoadConf() {
 var conf Config
 
 type Config struct {
-	Port     string   `yaml:"port" default:"8080"`
-	Debug    bool     `yaml:"debug" default:"false"`
-	Mysql    *Mysql   `yaml:"mysql"`
-	Uc       Uc       `yaml:"uc"`
-	Event    Event    `yaml:"event"`
-	Actuator Actuator `yaml:"actuator"`
+	Port            string   `yaml:"port"`
+	Debug           bool     `yaml:"debug"`
+	CallbackAddress string   `yaml:"callbackAddress"`
+	Mysql           *Mysql   `yaml:"mysql"`
+	Uc              Uc       `yaml:"uc"`
+	Event           Event    `yaml:"event"`
+	Actuator        Actuator `yaml:"actuator"`
+	Minio           Minio    `yaml:"minio"`
+}
+
+type Minio struct {
+	Server          string `yaml:"server"`
+	AccessKeyId     string `yaml:"accessKeyId"`
+	SecretAccessKey string `yaml:"secretAccessKey"`
+	Ssl             bool   `yaml:"ssl"`
+	BasePath        string `yaml:"basePath"`
 }
 
 type Mysql struct {
@@ -33,6 +43,10 @@ type Mysql struct {
 
 func GetPort() string {
 	return conf.Port
+}
+
+func GetCallbackAddress() string {
+	return conf.CallbackAddress
 }
 
 func GetLoginTokenSignature() string {
@@ -57,6 +71,10 @@ func GetEvent() Event {
 
 func GetActuator() Actuator {
 	return conf.Actuator
+}
+
+func GetMinio() Minio {
+	return conf.Minio
 }
 
 func GetLoginTokenExpiresTime() time.Duration {

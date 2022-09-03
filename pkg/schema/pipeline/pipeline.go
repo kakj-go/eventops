@@ -1,37 +1,13 @@
 package pipeline
 
 import (
+	"eventops/apistructs"
+	"eventops/pkg/dag"
+	"eventops/pkg/placeholder"
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"strings"
-	"tiggerops/apistructs"
-	"tiggerops/pkg/dag"
-	"tiggerops/pkg/placeholder"
 )
-
-type ValueType string
-
-const (
-	FileType ValueType = "file"
-	EnvType  ValueType = "env"
-)
-
-var ValueTypeList = []ValueType{FileType, EnvType}
-
-func (v ValueType) ValueTypeCheck() error {
-	var find bool
-	for _, value := range ValueTypeList {
-		if value == v {
-			find = true
-			break
-		}
-	}
-	if !find {
-		return fmt.Errorf("value type not support, use [%v, %v]", FileType, EnvType)
-	}
-
-	return nil
-}
 
 type Pipeline struct {
 	Version          string           `yaml:"version,omitempty"`
@@ -44,15 +20,28 @@ type Pipeline struct {
 	Outputs          []Output         `yaml:"outputs,omitempty"`
 }
 
+func BuildImage(name string, creater string, version string) string {
+	return fmt.Sprintf("%v/%v:%v", creater, name, version)
+}
+
 func (p *Pipeline) GetPipelineTypeTask() (pipelineTask []Task) {
 	for _, task := range p.Tasks {
-		if task.Type != PipeType {
+		if task.Type != apistructs.PipeType {
 			continue
 		}
 		pipelineTask = append(pipelineTask, task)
 	}
 
 	return pipelineTask
+}
+
+func (p *Pipeline) GetTaskByAlias(alias string) (pipelineTask *Task) {
+	for _, task := range p.Tasks {
+		if task.Alias == alias {
+			return &task
+		}
+	}
+	return nil
 }
 
 func (p *Pipeline) Mutating(pipelineTypeTaskDefinitionMap map[string]Pipeline) error {
@@ -66,22 +55,23 @@ func (p *Pipeline) Mutating(pipelineTypeTaskDefinitionMap map[string]Pipeline) e
 		return err
 	}
 
+	p.taskTimeoutMutating()
 	return nil
 }
 
 func (p *Pipeline) PipelineTypeTaskImageMutating(creater string) {
 	for index, task := range p.Tasks {
-		if task.Type != PipeType {
+		if task.Type != apistructs.PipeType {
 			continue
 		}
 
-		imageCreater := task.GetPipelineTypeTaskCreater()
-		if imageCreater == "" {
+		imageCreater := task.GetPipelineCreater()
+		if strings.TrimSpace(imageCreater) == "" {
 			p.Tasks[index].Image = fmt.Sprintf("%s%s%s", creater, ImageCreaterNameSplitWord, p.Tasks[index].Image)
 		}
 
-		imageVersion := task.GetPipelineTypeTaskVersion()
-		if imageVersion == "" {
+		imageVersion := task.GetPipelineVersion()
+		if strings.TrimSpace(imageVersion) == "" {
 			p.Tasks[index].Image = fmt.Sprintf("%s%s%s", p.Tasks[index].Image, ImageNameVersionSplitWord, apistructs.LatestVersion)
 		}
 	}
@@ -100,7 +90,7 @@ func (p *Pipeline) pipelineTypeTaskOutputTypeMutating(pipelineTypeTaskDefinition
 	}
 
 	for index, task := range p.Tasks {
-		if task.Type != PipeType {
+		if task.Type != apistructs.PipeType {
 			continue
 		}
 		for outputIndex, output := range task.Outputs {
@@ -149,6 +139,18 @@ func (p *Pipeline) pipelineOutputTypeMutating() error {
 	}
 
 	return nil
+}
+
+func (p *Pipeline) taskTimeoutMutating() {
+
+	for index, task := range p.Tasks {
+		if task.Type == apistructs.PipeType {
+			continue
+		}
+		if task.Timeout <= 0 {
+			p.Tasks[index].Timeout = 3600
+		}
+	}
 }
 
 func (p *Pipeline) Check(yamlContent string, pipelineTypeTaskDefinitionMap map[string]Pipeline) error {
@@ -203,10 +205,6 @@ func (p *Pipeline) checkFormat() error {
 }
 
 func (p *Pipeline) checkInput() error {
-	if p.Inputs == nil {
-		return nil
-	}
-
 	for _, input := range p.Inputs {
 		if err := input.check(); err != nil {
 			return err

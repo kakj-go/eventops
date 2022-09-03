@@ -1,3 +1,0 @@
-### test dialer client
-GET http://localhost:8080/api/dialer/test?clientID=docker
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJldmVudG9wcyIsInN1YiI6ImxvZ2luIiwiYXVkIjpbImtha2oiXSwiZXhwIjoxOTc2MDA3MTY4LCJuYmYiOjE2NjA2NDcxNjh9.f3s85GpXPkqWNzVR2xLJwxhfdUy1mjKGRSKIBMJS62s

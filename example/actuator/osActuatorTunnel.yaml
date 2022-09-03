@@ -1,0 +1,13 @@
+name: os-runner-with-tunnel
+
+os:
+  user: root
+  ip: 127.0.0.1
+  password: zhang2357
+
+tunnel:
+  clientId: runner_tunnel
+  clientToken: 123456
+
+tags:
+  - os-runner-with-tunnel

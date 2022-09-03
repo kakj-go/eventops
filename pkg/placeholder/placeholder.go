@@ -1,8 +1,11 @@
 package placeholder
 
 import (
+	"eventops/apistructs"
 	"fmt"
+	"path"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -30,8 +33,8 @@ func MatchHolderFromHandler(needMatchString string, handlers map[Type]Handler) e
 	matchStrings := PhRe.FindAllString(needMatchString, -1)
 	for _, placeholder := range matchStrings {
 
-		value := strings.TrimLeft(placeholder, Left)
-		value = strings.TrimRight(value, Right)
+		value := strings.TrimPrefix(placeholder, Left)
+		value = strings.TrimSuffix(value, Right)
 
 		ss := strings.SplitN(value, ".", 2)
 
@@ -86,4 +89,91 @@ func MatchHolderFromHandler(needMatchString string, handlers map[Type]Handler) e
 		}
 	}
 	return nil
+}
+
+type ReplaceValue struct {
+	Inputs   apistructs.Inputs
+	Outputs  apistructs.Outputs
+	Contexts apistructs.Contexts
+
+	PipelineId uint64
+	TaskId     uint64
+}
+
+func MakeOutputKey(taskAlias string, taskOutputName string) string {
+	return fmt.Sprintf("%v.%v", taskAlias, taskOutputName)
+}
+
+func MakeRealFilePath(pipelineId, taskId uint64, name string, typeName string) string {
+	return path.Join("/root", "pipelines", strconv.FormatUint(pipelineId, 10), "tasks", strconv.FormatUint(taskId, 10), typeName, name)
+}
+
+func ReplacePlaceholder(needMatchString string, replaceValue *ReplaceValue, makeFileTypeValueRealPath bool) string {
+	_ = MatchHolderFromHandler(needMatchString, map[Type]Handler{
+		ContextType: func(placeholder string, values ...string) error {
+			// ${{ contexts.xxx }}
+			if replaceValue.Contexts == nil {
+				return nil
+			}
+
+			contextName := values[1]
+			context := replaceValue.Contexts[contextName]
+			if context.Type == apistructs.EnvType {
+				needMatchString = strings.ReplaceAll(needMatchString, placeholder, context.Value)
+			} else {
+				if makeFileTypeValueRealPath {
+					needMatchString = strings.ReplaceAll(needMatchString, placeholder, MakeRealFilePath(replaceValue.PipelineId, replaceValue.TaskId, context.Name, ContextType.String()))
+				} else {
+					needMatchString = strings.ReplaceAll(needMatchString, placeholder, context.Value)
+				}
+			}
+			return nil
+		},
+		InputType: func(placeholder string, values ...string) error {
+			// ${{ inputs.xxx }}
+			if replaceValue.Inputs == nil {
+				return nil
+			}
+
+			inputName := values[1]
+			input := replaceValue.Inputs[inputName]
+
+			if input.Type == apistructs.EnvType {
+				needMatchString = strings.ReplaceAll(needMatchString, placeholder, input.Value)
+			} else {
+				if makeFileTypeValueRealPath {
+					needMatchString = strings.ReplaceAll(needMatchString, placeholder, MakeRealFilePath(replaceValue.PipelineId, replaceValue.TaskId, input.Name, InputType.String()))
+				} else {
+					needMatchString = strings.ReplaceAll(needMatchString, placeholder, input.Value)
+				}
+			}
+			return nil
+		},
+		OutputType: func(placeholder string, values ...string) error {
+			// ${{ outputs.alias.xxx }}
+			if replaceValue.Outputs == nil {
+				return nil
+			}
+
+			taskName := values[1]
+			taskOutput := values[2]
+			output := replaceValue.Outputs[MakeOutputKey(taskName, taskOutput)]
+
+			if output.Type == apistructs.EnvType {
+				needMatchString = strings.ReplaceAll(needMatchString, placeholder, output.Value)
+			} else {
+				if makeFileTypeValueRealPath {
+					needMatchString = strings.ReplaceAll(needMatchString, placeholder, MakeRealFilePath(replaceValue.PipelineId, replaceValue.TaskId, output.Name, OutputType.String()))
+				} else {
+					needMatchString = strings.ReplaceAll(needMatchString, placeholder, output.Value)
+				}
+			}
+			return nil
+		},
+		RandomType: func(placeholder string, values ...string) error {
+			// todo
+			return nil
+		},
+	})
+	return needMatchString
 }

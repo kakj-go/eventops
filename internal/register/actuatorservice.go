@@ -1,16 +1,16 @@
 package register
 
 import (
+	"eventops/apistructs"
+	"eventops/internal/core/client/actuatorclient"
+	"eventops/internal/core/token"
+	"eventops/pkg/responsehandler"
+	"eventops/pkg/schema/actuator"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v3"
 	"gorm.io/gorm"
 	"net/http"
-	"tiggerops/apistructs"
-	"tiggerops/internal/register/client/actuatorclient"
-	"tiggerops/pkg/responsehandler"
-	"tiggerops/pkg/schema/actuator"
-	"tiggerops/pkg/token"
 )
 
 type ApplyActuatorRequest struct {
@@ -24,10 +24,15 @@ func (r *Service) ApplyActuator(c *gin.Context) {
 		return
 	}
 
-	var actuatorInfo actuator.Client
-	err := yaml.Unmarshal([]byte(applyInfo.ActuatorContent), &actuatorInfo)
+	var actuatorInfo = &actuator.Client{}
+	err := yaml.Unmarshal([]byte(applyInfo.ActuatorContent), actuatorInfo)
 	if err != nil {
 		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("yaml content unmarshal error: %v", err), nil))
+		return
+	}
+
+	if err := actuatorInfo.Mutating(); err != nil {
+		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, err.Error(), nil))
 		return
 	}
 
@@ -36,6 +41,13 @@ func (r *Service) ApplyActuator(c *gin.Context) {
 		return
 	}
 
+	yamlContent, err := yaml.Marshal(actuatorInfo)
+	if err != nil {
+		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("pipeline yaml content marshal error: %v", err), nil))
+		return
+	}
+	applyContent := string(yamlContent)
+
 	dbActuator, find, err := r.actuatorClient.GetActuator(nil, actuatorInfo.Name, token.GetUserName(c))
 	if err != nil {
 		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("get actuator error: %v", err), nil))
@@ -43,20 +55,22 @@ func (r *Service) ApplyActuator(c *gin.Context) {
 	}
 
 	err = r.dbClient.Transaction(func(tx *gorm.DB) error {
+		var dbActuatorId uint64
 		if !find {
 			var create = actuatorclient.Actuator{
 				Name:        actuatorInfo.Name,
 				Creater:     token.GetUserName(c),
 				Type:        actuatorInfo.GetType(),
-				Content:     applyInfo.ActuatorContent,
+				Content:     applyContent,
 				ClientId:    actuatorInfo.GetTunnelClientID(),
 				ClientToken: actuatorInfo.GetTunnelClientToken(),
 			}
 			if _, err := r.actuatorClient.CreateActuator(tx, &create); err != nil {
 				return err
 			}
+			dbActuatorId = create.Id
 		} else {
-			dbActuator.Content = applyInfo.ActuatorContent
+			dbActuator.Content = applyContent
 			dbActuator.Type = actuatorInfo.GetType()
 
 			dbActuator.ClientId = actuatorInfo.GetTunnelClientID()
@@ -64,6 +78,7 @@ func (r *Service) ApplyActuator(c *gin.Context) {
 			if _, err := r.actuatorClient.UpdateActuator(tx, dbActuator); err != nil {
 				return err
 			}
+			dbActuatorId = dbActuator.Id
 		}
 
 		if err := r.actuatorClient.DeleteActuatorTags(tx, actuatorInfo.Name, token.GetUserName(c)); err != nil {
@@ -76,6 +91,7 @@ func (r *Service) ApplyActuator(c *gin.Context) {
 				ActuatorCreater: token.GetUserName(c),
 				ActuatorType:    actuatorInfo.GetType(),
 				Tag:             tag,
+				ActuatorId:      dbActuatorId,
 			})
 		}
 		err := r.actuatorClient.BatchCreateActuatorTags(tx, actuatorTags)

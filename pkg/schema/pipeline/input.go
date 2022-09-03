@@ -1,12 +1,15 @@
 package pipeline
 
-import "fmt"
+import (
+	"eventops/apistructs"
+	"fmt"
+)
 
 type Input struct {
-	Name    string    `yaml:"name,omitempty"`
-	Value   string    `yaml:"value,omitempty"`
-	Type    ValueType `yaml:"type,omitempty"`
-	Default string    `yaml:"default,omitempty"`
+	Name    string               `yaml:"name,omitempty"`
+	Value   string               `yaml:"value,omitempty"`
+	Type    apistructs.ValueType `yaml:"type,omitempty"`
+	Default string               `yaml:"default,omitempty"`
 }
 
 func (i Input) check() error {
@@ -14,7 +17,7 @@ func (i Input) check() error {
 		return fmt.Errorf("input name can not empty")
 	}
 	if err := i.Type.ValueTypeCheck(); err != nil {
-		return fmt.Errorf("input name %v type check error %v", i.Name, err)
+		return err
 	}
 
 	return nil

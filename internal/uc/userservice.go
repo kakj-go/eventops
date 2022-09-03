@@ -3,13 +3,14 @@ package uc
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"eventops/apistructs"
+	"eventops/conf"
+	"eventops/internal/core/client/userclient"
+	token2 "eventops/internal/core/token"
+	"eventops/pkg/responsehandler"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"tiggerops/conf"
-	"tiggerops/internal/uc/client/userclient"
-	"tiggerops/pkg/responsehandler"
-	"tiggerops/pkg/token"
 	"time"
 )
 
@@ -20,7 +21,7 @@ type User struct {
 }
 
 func (u *Service) me(c *gin.Context) {
-	name := token.GetUserName(c)
+	name := token2.GetUserName(c)
 
 	dbUser, find, err := u.userDbClient.GetUserByName(nil, name)
 	if err != nil {
@@ -38,19 +39,8 @@ func (u *Service) me(c *gin.Context) {
 	}))
 }
 
-type UserRegisterInfo struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-// Check todo check name email and password
-func (info UserRegisterInfo) Check() error {
-	return nil
-}
-
 func (u *Service) register(c *gin.Context) {
-	var userRegisterInfo UserRegisterInfo
+	var userRegisterInfo apistructs.UserRegisterInfo
 	if err := c.ShouldBind(&userRegisterInfo); err != nil {
 		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, err.Error(), nil))
 		return
@@ -66,8 +56,8 @@ func (u *Service) register(c *gin.Context) {
 		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, err.Error(), nil))
 		return
 	}
-	if !find {
-		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("name %v is already in use", userRegisterInfo.Name), nil))
+	if find {
+		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("name %v is already used", userRegisterInfo.Name), nil))
 		return
 	}
 
@@ -76,12 +66,12 @@ func (u *Service) register(c *gin.Context) {
 		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, err.Error(), nil))
 		return
 	}
-	if !find {
-		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("email %v is already in use", userRegisterInfo.Name), nil))
+	if find {
+		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("email %v is already used", userRegisterInfo.Name), nil))
 		return
 	}
 
-	var salt = token.Salt()
+	var salt = token2.Salt()
 	var user = userclient.User{
 		Name:     userRegisterInfo.Name,
 		Email:    userRegisterInfo.Email,
@@ -142,12 +132,12 @@ func (u *Service) login(c *gin.Context) {
 		return
 	}
 
-	loginToken, err := token.GenLoginToken(dbUser.Name, conf.GetLoginTokenSignature(), time.Now().Add(conf.GetLoginTokenExpiresTime()))
+	loginToken, err := token2.GenLoginToken(dbUser.Name, conf.GetLoginTokenSignature(), time.Now().Add(conf.GetLoginTokenExpiresTime()))
 	if err != nil {
 		c.JSON(responsehandler.Build(http.StatusServiceUnavailable, fmt.Sprintf("create token error: %v", err), nil))
 		return
 	}
-	token.SetToken(c, loginToken)
+	token2.SetToken(c, loginToken)
 
 	c.JSON(responsehandler.Build(http.StatusOK, "login success", User{
 		Name:  dbUser.Name,

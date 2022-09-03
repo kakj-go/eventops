@@ -22,4 +22,9 @@ Content-Type: application/json
   "password": "123456"
 }
 
+### user login
+POST http://192.168.0.109:2375/v1.24/images/create?fromImage=busybox&tag=latest
+Content-Type: application/json
+X-Registry-Auth: ""
+
 

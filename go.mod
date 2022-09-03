@@ -4,10 +4,12 @@ go 1.18
 
 require (
 	github.com/bluele/gcache v0.0.2
+	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/gin-gonic/gin v1.8.1
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/guonaihong/gout v0.3.1
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/melbahja/goph v1.3.0
 	github.com/minio/minio-go/v7 v7.0.34
 	github.com/mitchellh/go-homedir v1.1.0
@@ -31,7 +33,6 @@ require (
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
@@ -54,6 +55,7 @@ require (
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.5 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect

@@ -1,10 +1,10 @@
 package dbclient
 
 import (
+	"eventops/conf"
 	"fmt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"tiggerops/conf"
 )
 
 func DBClient(username, password, address, port, dbname string) (db *gorm.DB, err error) {

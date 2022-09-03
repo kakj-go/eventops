@@ -40,7 +40,7 @@ func main() {
 
 	for {
 		remotedialer.ClientConnect(context.Background(), serverAddr, headers, nil, auth, nil)
-		logrus.Errorf("failed to client server: %v, reclient after 5 second", serverAddr)
-		time.Sleep(5 * time.Second)
+		logrus.Errorf("failed to client server: %v, reclient after 1 second", serverAddr)
+		time.Sleep(time.Second)
 	}
 }

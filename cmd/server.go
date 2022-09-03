@@ -2,6 +2,17 @@ package main
 
 import (
 	"context"
+	"eventops/conf"
+	"eventops/internal/core/dialer"
+	"eventops/internal/core/eventprocess"
+	"eventops/internal/core/flowmanager"
+	"eventops/internal/core/token"
+	dialerservice "eventops/internal/dialer"
+	"eventops/internal/event"
+	"eventops/internal/pipeline"
+	"eventops/internal/register"
+	"eventops/internal/uc"
+	"eventops/pkg/dbclient"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -10,15 +21,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"tiggerops/conf"
-	dialerservice "tiggerops/internal/dialer"
-	"tiggerops/internal/event"
-	"tiggerops/internal/register"
-	"tiggerops/internal/uc"
-	"tiggerops/pkg/dbclient"
-	"tiggerops/pkg/dialer"
-	"tiggerops/pkg/eventprocess"
-	"tiggerops/pkg/token"
 	"time"
 )
 
@@ -41,18 +43,21 @@ func newServer() (*server, error) {
 	}
 
 	dialerServer := dialer.NewServer()
-	eventProcess := eventprocess.NewProcess(dbClient, ctx)
+	pipelineManager := flowmanager.NewFlowManager(ctx, dbClient, dialerServer)
+	eventProcess := eventprocess.NewProcess(dbClient, ctx, pipelineManager)
 
 	ucService := uc.NewService(ctx, dbClient)
 	registerService := register.NewService(ctx, dbClient, eventProcess, dialerServer)
 	eventService := event.NewService(ctx, dbClient, eventProcess)
 	actuatorService := dialerservice.NewService(ctx, dbClient, dialerServer)
+	pipelineService := pipeline.NewService(ctx, dbClient, pipelineManager)
 
 	var services []Service
 	services = append(services, ucService)
 	services = append(services, registerService)
 	services = append(services, eventService)
 	services = append(services, actuatorService)
+	services = append(services, pipelineService)
 
 	return &server{
 		ginEngine: router,
@@ -63,8 +68,8 @@ func newServer() (*server, error) {
 }
 
 func (srv *server) run() {
-	srv.runServices()
 	srv.routing()
+	srv.runServices()
 
 	server := srv.ListenAndServe()
 	srv.ListenShutdown(server)

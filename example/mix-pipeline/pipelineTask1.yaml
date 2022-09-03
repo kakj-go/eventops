@@ -1,0 +1,74 @@
+version: 1.0
+name: mix-pipeline-task1
+
+inputs:
+  - name: env
+    type: env
+  - name: file
+    type: file
+
+contexts:
+  - name: context_env
+    type: env
+  - name: context_file
+    type: file
+
+dag:
+  - name: docker-echo
+    needs:
+      - root
+  - name: k8s-echo-input
+    needs:
+      - root
+  - name: k8s-echo-contexts
+    needs:
+      - docker-echo
+
+tasks:
+  # 打印入参的值，并且产生出参
+  - alias: docker-echo
+    type: docker
+    image: kakj/mc
+    outputs:
+      - name: context_env
+        value: contextEnvValue
+        type: env
+        setToContext: context_env
+      - name: context_file
+        value: $contextFile
+        type: file
+        setToContext: context_file
+    commands:
+      - echo "${{ inputs.env }}"
+      - cat ${{ inputs.file }}
+      - echo "docker file value" > contextFile
+      - export contextEnvValue='docker env value'
+      - export contextFile=`pwd`/contextFile
+
+  # 使用当前流水线的入参作为流水线任务的入参
+  - alias: k8s-echo-input
+    type: pipeline
+    image: mix-pipeline-task2:1.0
+    inputs:
+      - name: input-env
+        value: ${{ inputs.env }}
+      - name: input-file
+        value: ${{ inputs.file }}
+
+  # 使用当前流水线的全局参数作为流水线任务的入参
+  - alias: k8s-echo-contexts
+    type: pipeline
+    image: mix-pipeline-task2:1.0
+    inputs:
+      - name: input-env
+        value: ${{ contexts.context_env }}
+      - name: input-file
+        value: ${{ contexts.context_file }}
+
+# 输出出参
+outputs:
+  - name: docker-env-output
+    value: ${{ outputs.docker-echo.context_env }}
+  - name: docker-file-output
+    value: ${{ outputs.docker-echo.context_file }}
+

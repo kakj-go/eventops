@@ -2,18 +2,18 @@ package dialer
 
 import (
 	"context"
+	"eventops/internal/core/client/actuatorclient"
+	"eventops/internal/core/dialer"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"tiggerops/internal/register/client/actuatorclient"
-	"tiggerops/pkg/dialer"
 )
 
-func NewService(ctx context.Context, dbClient *gorm.DB, DialerServer *dialer.Server) *Service {
+func NewService(ctx context.Context, dbClient *gorm.DB, dialerServer *dialer.Server) *Service {
 	var actuator = Service{
 		ctx:            ctx,
 		dbClient:       dbClient,
 		actuatorClient: actuatorclient.NewActuatorsClient(dbClient),
-		dialerServer:   DialerServer,
+		dialerServer:   dialerServer,
 	}
 	return &actuator
 }

@@ -1,0 +1,16 @@
+name: eoctl-run
+version: 1.2
+
+values:
+  echoValue: hello word input env value
+
+files:
+  echoValue:
+    value: test/echo_value
+    type: minio
+
+labels:
+  user: kakj
+
+timestamp: 1661422308
+users: ["kakj"]

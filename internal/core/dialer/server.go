@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/rancher/remotedialer"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -68,25 +67,27 @@ func (server *Server) authorizer(req *http.Request) (string, bool, error) {
 	return sign, server.AuthList[sign] == req.Header.Get(AuthHeader), nil
 }
 
-func (server *Server) GetClient(creater, clientKey, timeout string) remotedialer.Dialer {
+var deadline = 20 * 365 * 24 * time.Hour
+
+func (server *Server) GetClient(creater, clientKey string) remotedialer.Dialer {
 	server.l.Lock()
 	defer server.l.Unlock()
 
-	key := fmt.Sprintf("%s-%s/%s", creater, clientKey, timeout)
-	client := server.clients[key]
+	sign := signBuild(clientKey, creater)
+
+	hasSession := server.RemoteDialer.HasSession(sign)
+	if !hasSession {
+		return nil
+	}
+
+	client := server.clients[sign]
 	if client != nil {
 		return client
 	}
 
-	var deadline = time.Second * 30
-	t, err := strconv.Atoi(timeout)
-	if err == nil {
-		deadline = time.Duration(t) * time.Second
-	}
-
-	dialer := server.RemoteDialer.Dialer(clientKey, deadline)
+	dialer := server.RemoteDialer.Dialer(sign, deadline)
 	if dialer != nil {
-		server.clients[key] = dialer
+		server.clients[sign] = dialer
 	}
 	return dialer
 }

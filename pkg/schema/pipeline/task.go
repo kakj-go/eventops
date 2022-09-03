@@ -1,42 +1,28 @@
 package pipeline
 
 import (
+	"eventops/apistructs"
 	"fmt"
 	"strings"
-)
-
-type TaskType string
-
-const (
-	K8sType    TaskType = "k8s"
-	DockerType TaskType = "docker"
-	OsType     TaskType = "os"
-	PipeType   TaskType = "pipeline"
 )
 
 const ImageCreaterNameSplitWord = "/"
 const ImageNameVersionSplitWord = ":"
 
-var TaskTypeList = []TaskType{K8sType, DockerType, OsType, PipeType}
-
-func (t TaskType) String() string {
-	return string(t)
-}
-
 type Task struct {
-	Image            string           `yaml:"image,omitempty"`
-	Alias            string           `yaml:"alias,omitempty"`
-	Type             TaskType         `yaml:"type,omitempty"`
-	ActuatorSelector ActuatorSelector `yaml:"actuatorSelector,omitempty"`
-	Inputs           []Input          `yaml:"inputs,omitempty"`
-	Commands         []string         `yaml:"commands,omitempty"`
-	Outputs          []Output         `yaml:"outputs,omitempty"`
-	Timeout          int64            `yaml:"timeout,omitempty"`
-	Resources        *Resources       `yaml:"resources,omitempty"`
+	Image            string              `yaml:"image,omitempty"`
+	Alias            string              `yaml:"alias,omitempty"`
+	Type             apistructs.TaskType `yaml:"type,omitempty"`
+	ActuatorSelector ActuatorSelector    `yaml:"actuatorSelector,omitempty"`
+	Inputs           []Input             `yaml:"inputs,omitempty"`
+	Commands         []string            `yaml:"commands,omitempty"`
+	Outputs          []Output            `yaml:"outputs,omitempty"`
+	Timeout          int64               `yaml:"timeout,omitempty"`
+	Resources        *Resources          `yaml:"resources,omitempty"`
 }
 
-func (t Task) GetPipelineTypeTaskVersion() string {
-	if t.Type != PipeType {
+func (t Task) GetPipelineVersion() string {
+	if t.Type != apistructs.PipeType {
 		return ""
 	}
 
@@ -52,8 +38,8 @@ func GetImageVersion(image string) string {
 	return split[1]
 }
 
-func (t Task) GetPipelineTypeTaskCreater() string {
-	if t.Type != PipeType {
+func (t Task) GetPipelineCreater() string {
+	if t.Type != apistructs.PipeType {
 		return ""
 	}
 
@@ -69,35 +55,28 @@ func GetImageCreater(image string) string {
 	return split[0]
 }
 
-func (t Task) GetPipelineTypeTaskName() string {
-	if t.Type != PipeType {
-		return ""
-	}
+func GetImageName(image string) string {
+	var name = image
 
-	var name = t.Image
-
-	version := t.GetPipelineTypeTaskVersion()
-	creater := t.GetPipelineTypeTaskCreater()
+	version := GetImageVersion(image)
+	creater := GetImageCreater(image)
 
 	if version != "" {
-		name = strings.TrimRight(name, fmt.Sprintf(ImageNameVersionSplitWord+"%s", version))
+		name = strings.TrimSuffix(name, ImageNameVersionSplitWord+version)
 	}
 
 	if creater != "" {
-		name = strings.TrimLeft(name, fmt.Sprintf("%s"+ImageCreaterNameSplitWord, creater))
+		name = strings.TrimPrefix(name, creater+ImageCreaterNameSplitWord)
 	}
 	return name
 }
 
-func (t TaskType) Check() bool {
-	var find = false
-	for _, taskType := range TaskTypeList {
-		if t == taskType {
-			find = true
-			break
-		}
+func (t Task) GetPipelineName() string {
+	if t.Type != apistructs.PipeType {
+		return ""
 	}
-	return find
+
+	return GetImageName(t.Image)
 }
 
 func (t Task) Check(pipelineContexts []Context) error {
@@ -106,11 +85,11 @@ func (t Task) Check(pipelineContexts []Context) error {
 	}
 
 	if !t.Type.Check() {
-		return fmt.Errorf("use [%s %s %s %s] these task type", K8sType, DockerType, OsType, PipeType)
+		return fmt.Errorf("use [%s %s %s %s] these task type", apistructs.K8sType, apistructs.DockerType, apistructs.OsType, apistructs.PipeType)
 	}
 
-	if t.Type != OsType && len(t.Image) == 0 {
-		return fmt.Errorf("[%s, %s, %s] type task image can not empty", K8sType, DockerType, PipeType)
+	if t.Type != apistructs.OsType && len(t.Image) == 0 {
+		return fmt.Errorf("[%s, %s, %s] type task image can not empty", apistructs.K8sType, apistructs.DockerType, apistructs.PipeType)
 	}
 
 	if err := t.ActuatorSelector.check(); err != nil {
@@ -121,8 +100,8 @@ func (t Task) Check(pipelineContexts []Context) error {
 		return err
 	}
 
-	if t.Type != PipeType && len(t.Commands) == 0 {
-		return fmt.Errorf("[%s, %s, %s] task type, commands can not empty", K8sType, DockerType, OsType)
+	if t.Type != apistructs.PipeType && len(t.Commands) == 0 {
+		return fmt.Errorf("[%s, %s, %s] task type, commands can not empty", apistructs.K8sType, apistructs.DockerType, apistructs.OsType)
 	}
 
 	if err := t.outputCheck(pipelineContexts); err != nil {
@@ -150,7 +129,7 @@ func (t Task) outputCheck(pipelineContexts []Context) error {
 			return fmt.Errorf("output name %v value can not empty", output.Name)
 		}
 
-		if t.Type != PipeType {
+		if t.Type != apistructs.PipeType {
 			err := output.Type.ValueTypeCheck()
 			if err != nil {
 				return fmt.Errorf("output name %v type check error %v", output.Name, err)
@@ -170,7 +149,7 @@ func (t Task) outputCheck(pipelineContexts []Context) error {
 				break
 			}
 			if !find {
-				return fmt.Errorf("output name %v setToContext %v not find", output.Name, output.SetToContext)
+				return fmt.Errorf("output name %v setToContext %v not find in pipeline content", output.Name, output.SetToContext)
 			}
 		}
 	}

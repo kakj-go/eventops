@@ -2,13 +2,13 @@ package register
 
 import (
 	"context"
+	"eventops/internal/core/client/actuatorclient"
+	"eventops/internal/core/client/pipelinedefinitionclient"
+	"eventops/internal/core/client/triggerdefinitionclient"
+	"eventops/internal/core/dialer"
+	"eventops/internal/core/eventprocess"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"tiggerops/internal/register/client/actuatorclient"
-	"tiggerops/internal/register/client/pipelinedefinitionclient"
-	"tiggerops/internal/register/client/triggerdefinitionclient"
-	"tiggerops/pkg/dialer"
-	"tiggerops/pkg/eventprocess"
 )
 
 func NewService(ctx context.Context, dbClient *gorm.DB, eventProcess *eventprocess.Process, dialerServer *dialer.Server) *Service {
@@ -45,7 +45,6 @@ type Service struct {
 func (r *Service) Router(router *gin.RouterGroup) {
 	taskDefinition := router.Group("/pipeline-definition")
 	{
-		//taskDefinition.GET("/", r.PagePipeline)
 		taskDefinition.GET("/:name", r.GetPipeline)
 		taskDefinition.GET("/:name/:version", r.GetPipelineVersion)
 		taskDefinition.GET("/", r.ListMyPipelineVersion)
@@ -58,7 +57,7 @@ func (r *Service) Router(router *gin.RouterGroup) {
 		triggerDefinition.POST("/apply", r.ApplyTriggerDefinition)
 		triggerDefinition.DELETE("/:name", r.DeleteTriggerDefinition)
 		triggerDefinition.GET("/", r.ListMyTriggerDefinition)
-		triggerDefinition.GET("/:name/list-event-trigger", r.ListEventTrigger)
+		//triggerDefinition.GET("/:name/list-event-trigger", r.ListEventTrigger)
 	}
 
 	clientGroup := router.Group("/actuator")
@@ -66,7 +65,6 @@ func (r *Service) Router(router *gin.RouterGroup) {
 		clientGroup.POST("/apply", r.ApplyActuator)
 		clientGroup.DELETE("/:name", r.DeleteActuator)
 		clientGroup.GET("/", r.ListMyActuator)
-		// todo add tags actuator
 	}
 }
 

@@ -2,16 +2,16 @@ package pipeline
 
 import (
 	"encoding/json"
+	"eventops/apistructs"
+	"eventops/internal/core/token"
+	"eventops/pkg/schema/pipeline"
+	"eventops/tools/eoctl/conf"
+	"eventops/tools/eoctl/login"
 	"fmt"
 	"github.com/guonaihong/gout"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 	"os"
-	"tiggerops/apistructs"
-	"tiggerops/pkg/schema/pipeline"
-	"tiggerops/pkg/token"
-	"tiggerops/tools/eoctl/conf"
-	"tiggerops/tools/eoctl/login"
 	"time"
 )
 
@@ -195,7 +195,7 @@ func listMyPipelineDefinition(user *conf.UserInfo) ([]apistructs.PipelineVersion
 		return nil, err
 	}
 	if resp.Status != 200 {
-		return nil, fmt.Errorf("list my pipeline definition status: %v, msg %s", resp.Status, resp.Msg)
+		return nil, fmt.Errorf("list my pipeline definition status: %v, msg: %s", resp.Status, resp.Msg)
 	}
 
 	return resp.Data, nil
@@ -218,7 +218,7 @@ func describePipelineVersionInfo(user *conf.UserInfo, name string, version strin
 		return nil, err
 	}
 	if resp.Status != 200 {
-		return nil, fmt.Errorf("get pipeline definition status: %v, msg %s", resp.Status, resp.Msg)
+		return nil, fmt.Errorf("get pipeline definition status: %v, msg: %s", resp.Status, resp.Msg)
 	}
 	return &resp.Data, nil
 }
@@ -240,7 +240,7 @@ func describePipelineInfo(user *conf.UserInfo, name string) (*apistructs.Pipelin
 		return nil, err
 	}
 	if resp.Status != 200 {
-		return nil, fmt.Errorf("describe pipeline definition status: %v, msg %s", resp.Status, resp.Msg)
+		return nil, fmt.Errorf("describe pipeline definition status: %v, msg: %s", resp.Status, resp.Msg)
 	}
 	return &resp.Data, nil
 }

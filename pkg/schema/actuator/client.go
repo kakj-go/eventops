@@ -1,8 +1,8 @@
 package actuator
 
 import (
+	"eventops/apistructs"
 	"fmt"
-	"tiggerops/pkg/schema/pipeline"
 )
 
 type Client struct {
@@ -70,15 +70,33 @@ func (a Client) Check() error {
 	return nil
 }
 
-func (a Client) GetType() pipeline.TaskType {
+func (a Client) Mutating() error {
 	if a.Os != nil {
-		return pipeline.OsType
+		if a.Os.Port == "" {
+			a.Os.Port = "22"
+		}
+	}
+
+	if a.Docker != nil {
+		if a.Docker.Ssh != nil {
+			if a.Docker.Ssh.Port == "" {
+				a.Docker.Ssh.Port = "22"
+			}
+		}
+	}
+
+	return nil
+}
+
+func (a Client) GetType() apistructs.TaskType {
+	if a.Os != nil {
+		return apistructs.OsType
 	}
 	if a.Kubernetes != nil {
-		return pipeline.K8sType
+		return apistructs.K8sType
 	}
 	if a.Docker != nil {
-		return pipeline.DockerType
+		return apistructs.DockerType
 	}
 	return ""
 }
