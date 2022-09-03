@@ -24,7 +24,7 @@ server 端, 内部有 uc register pipeline event dialer 等五类 api
 
 ## 启动 eventops
 1. 从 [安装](#安装) 了解如何获取 `eventops` 工具
-2. 在某个目录下创建 `config.yaml` 文件 (文件配置参考 [config.yaml](###config.yaml))
+2. 在某个目录下创建 `config.yaml` 文件 (文件配置参考 [config.yaml](#configyaml))
 3. 启动 `eventops --configFile=/etc/eventops/config.yaml`
 
 ## 使用 eoctl
@@ -33,7 +33,7 @@ server 端, 内部有 uc register pipeline event dialer 等五类 api
 3. 注册用户 `eoctl register -s=http://127.0.0.1:8080 -u=kakj -p=123456 -e=2357431193@qq.com`
 4. 登录用户 `eoctl login -s=http://127.0.0.1:8080 -u=kakj -p=123456`
 
-## 使用 eoctl 创建 actuatorDefinition, pipelineDefinition, triggerDefinition
+## 使用 eoctl 创建 actuatorDefinition pipelineDefinition triggerDefinition
 1. `git clone https://github.com/kakj-go/eventops.git && cd eventops`
 2. 修改 `example/hello-world/osActuator.yaml` 配置,
 3. `eoctl actuator apply -f example/hello-world/osActuator.yaml`
