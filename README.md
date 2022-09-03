@@ -25,7 +25,7 @@ eventops 目前有以下三个工具
 
 ## 启动 eventops
 1. 从 [安装](#安装) 了解如何获取 `eventops` 工具
-2. 在某个目录下创建 `config.yaml` 文件 (文件配置参考 [eventops](###eventops))
+2. 在某个目录下创建 `config.yaml` 文件 (文件配置参考 [config.yaml](###config.yaml))
 3. 启动 `eventops --configFile=/etc/eventops/config.yaml`
 
 ## 使用 eoctl
@@ -60,7 +60,7 @@ cd eventops
 make xxx
 ```
 
-### 从 github release 下载
+### 从 github 下载
 `release` 有 3 种工具可以下载 `eventops` `eoctl` 和 `client`
 
 ## 使用
