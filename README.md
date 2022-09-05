@@ -44,8 +44,25 @@ server 端, 内部有 uc register pipeline event dialer 等五类 api
 1. `eoctl event send -f example/hello-world/event.yaml`
 
 ## 查看流水线执行列表和获取详情
-1. `eocli runtime list`
-2. `eocli runtime get --id=pipelineId`
+
+在 `osActuator` 声明的机器用户目录下，可以查看各种信息
+
+```shell
+[root@localhost 337]# pwd
+/root/pipelines/237/tasks/337
+[root@localhost 337]# ls
+exit.code  nohup.log  nohup.pid  nohup.sh  response.txt  run.sh
+
+# exit.code 文件记录用户的命令执行的退出码，只有退出码为 0 时任务才是成功状态
+# nohup.log 文件记录用户命令的执行日志，其中包含标准输出和标准错误
+# run.sh 里面包含了用户 task 中的 command 命令，如果有文件类型的值引用，平台会前后增加 minio 客户端 mc 下载文件和上传文件命令，如果 task 有出参还增加回调的 curl 命令
+# nohup.sh 作为 run.sh 的父进程，目的时为了得到 run.sh 的 pid 和将 run.sh 置为后台运行进程
+# response.txt 记录了 run.sh 回调 curl 命令的返回值
+# nohup.pid 文件记录 run.sh 的执行 pid
+```
+也可以使用 `eocli runtime list` 和 `eocli runtime get --id=pipelineId` 查看任务或者 `pipeline` 的执行情况
+
+如果是其他类型的执行器 `task command` 前后也会根据情况增加一些 mc 上传下载和回调命令
 
 # 安装
 
@@ -149,6 +166,8 @@ uc:
 如果你的 `eventops` 无法直接访问 `actuator` 的地址。那么 `client` 是一种反向连接的工具, `client` 启动会主动和 `eventops` 建立 `websocket` 连接，
 然后 `eventops` 通过 `websocket` 连接通道对 `actuator` 进行管理
 
-`client` 启动 `./client --id=actuatorDefinition中的clientKey --token=actuatorDefinition中的clientToken --user=username`
+启动 client 之前得先创建对应的 tunnel actuator，然后再根据 actuator 中的　tunnel 信息启动 client
+
+`client` 启动 `./client --connect=ws://eventopsIp:eventopsPort/api/dialer/connect --id=actuatorDefinition中的clientKey --token=actuatorDefinition中的clientToken --user=username`
 
 
