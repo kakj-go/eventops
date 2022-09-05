@@ -1,0 +1,92 @@
+version: "3"
+services:
+  eventops:
+    image: kakj/eventops:v0.0.1-beta
+    container_name: eventops
+    restart: always
+    command: eventops
+    links:
+      - mysql
+      - minio
+    networks:
+      - net
+    environment:
+      debug: true
+      EVENTOPS_CALLBACK_ADDRESS: http://eventops:8080
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 123456
+      MYSQL_ADDRESS: mysql
+      MINIO_SERVER: http://minio:9000
+      MINIO_ACCESS_KEY: root
+      MINIO_SECRET_KEY: 1234567890
+    volumes:
+      - eventops-config:/etc/eventops/config.yaml
+    ports:
+      - "8080:8080"
+    depends_on:
+      init-sql:
+        condition: service_started
+      minio:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: "mysql:8.0.30"
+    container_name: mysql
+    restart: always
+    privileged: true
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 20s
+      retries: 10
+    networks:
+      - net
+    volumes:
+      - db-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=eventops
+    ports:
+      - "3306:3306"
+
+  init-sql:
+    image: kakj/init-db:v0.0.1-beta
+    container_name: init-sql
+    restart: "no"
+    links:
+      - mysql
+    networks:
+      - net
+    command: mysqlsh --user=root --password=123456 --host=mysql --database=eventops --port=3306 --file=/migrations/eventops.sql
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    restart: always
+    environment:
+      - MINIO_ACCESS_KEY=root
+      - MINIO_SECRET_KEY=1234567890
+    command: minio server /data --console-address ":9001"
+    networks:
+      - net
+    volumes:
+      - minio-config:/root/.minio
+      - minio-data:/data
+    ports:
+      - "9001:9001"
+      - "9000:9000"
+
+
+networks:
+  net:
+    driver: bridge
+
+volumes:
+  db-data:
+  minio-data:
+  minio-config:
+  eventops-config:
