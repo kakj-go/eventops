@@ -28,7 +28,7 @@ tasks:
   # 打印入参的值，并且产生出参
   - alias: docker-echo
     type: docker
-    image: kakj/mc
+    image: docker.io/kakj/mc
     outputs:
       - name: context_env
         value: contextEnvValue

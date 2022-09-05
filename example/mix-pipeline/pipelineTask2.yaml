@@ -16,7 +16,7 @@ tasks:
   # k8s 任务打印入参
   - alias: print-input
     type: k8s
-    image: kakj/mc
+    image: docker.io/kakj/mc
     commands:
       - echo "${{ inputs.input-env }}"
       - cat ${{ inputs.input-file }}

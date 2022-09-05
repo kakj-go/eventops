@@ -64,9 +64,9 @@ type Process struct {
 }
 
 type Minio struct {
-	Server          string `required:"true" env:"MINIO_SERVER" yaml:"server"`
-	AccessKeyId     string `required:"true" env:"MINIO_ACCESS_KEY" yaml:"accessKeyId" yaml:"accessKeyId"`
-	SecretAccessKey string `required:"true" env:"MINIO_SECRET_KEY" yaml:"secretAccessKey" yaml:"secretAccessKey"`
+	Server          string `env:"MINIO_SERVER" yaml:"server"`
+	AccessKeyId     string `env:"MINIO_ACCESS_KEY" yaml:"accessKeyId" yaml:"accessKeyId"`
+	SecretAccessKey string `env:"MINIO_SECRET_KEY" yaml:"secretAccessKey" yaml:"secretAccessKey"`
 	Ssl             bool   `default:"false" env:"MINIO_SSL" yaml:"ssl"`
 	BasePath        string `default:"eventops" env:"MINIO_BASE_PATH" yaml:"basePath"`
 }

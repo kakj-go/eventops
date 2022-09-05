@@ -3,9 +3,9 @@
 1. 下载 minio (地址: `http://www.minio.org.cn/download.shtml#/linux`)
 2. 启动 minio (命令: `minio server /root/data`)
 3. 下载客户端命令 mc (地址: `http://www.minio.org.cn/download.shtml#/linux`)
-4. 使用 mc 命令登录 (命令: `mc alias set kakj_minio http://eventopsIp:eventopsPort accessKey secretKey`)
+4. 使用 mc 命令登录 (命令: `mc alias set kakj_minio http://minioIp:9000 accessKey secretKey`)
 5. 创建 basePath (命令: `mc mb kakj_minio/eventops`)
-6. 创建对象文件并上传 (命令: `echo "hello world input file value" > /root/echo_value && mc cp /root/echo_value kakj_minio/eventops/test`)
+6. 创建对象文件并上传 (命令: `echo "hello world input file value" > /root/echo_value && mc cp /root/echo_value kakj_minio/eventops/test/echo_value`)
 7. 注意 eventops 中的 config.yaml 要配置 minio 的信息及 basePath 地址
 
 ### 创建 actuator
@@ -34,4 +34,4 @@
 
 
 ### Dockerfile 文件说明
-如果流水线或者触发器有文件传递则需要内置 mc 命令, 该文件是内置 mc 命令的示例
+如果流水线或者触发器有文件传递则需要内置 mc 命令, 该文件是镜像内置 mc 命令的示例

@@ -18,33 +18,56 @@ server 端, 内部有 uc register pipeline event dialer 等五类 api
 
 # 快速开始
 
-## 创建 mysql 库和表
-1. `mysql` 安装自行参考网上教程，或者直接使用 `docker` 进行安装
-2. `mysql` 安装完毕后，从 `https://github.com/kakj-go/eventops.git` 的 `migrations` 目录下获取 `eventops.sql` 去创建库和表
+## 使用 docker-compose 部署
+1. `git clone https://github.com/kakj-go/eventops.git`
+2. `cd eventops/example/hello-world`
+3. 修改 `docker-compose.yml 中的 [ip]`
+4. `docker-compose up -d`
 
-## 启动 eventops
-1. 从 [安装](#安装) 了解如何获取 `eventops` 工具
-2. 在某个目录下创建 `config.yaml` 文件 (文件配置参考 [config.yaml](#configyaml))
-3. 启动 `eventops --configFile=/etc/eventops/config.yaml`
+## 使用命令行部署
+1. 自行安装 `mysql`, 并创建 `eventops` 库
+2. 执行 `https://github.com/kakj-go/eventops/blob/master/tools/initdb/migrations/eventops.sql` 的 sql
+3. 从 [安装](#安装) 了解如何获取 `eventops` 命令
+4. 在 `/etc/eventops` 下创建 `config.yaml` 文件 (文件配置参考 [config.yaml](#configyaml))
+5. `./eventops` 或者 `./eventops  --configFile=/etc/eventops/config.yaml` 来启动服务
 
-## 使用 eoctl
-> 注意下面的登录和注册的前提是 eventops 启动地址是 127.0.0.1:8080
+下面是一个基础的 `config.yaml` 配置
+```yaml
+debug: true
+
+# 要根据宿主机 ip 来修改或者增加 dns 解析也行
+callbackAddress: http://evemtops:8080
+
+mysql:
+  user: root
+  password: 123456
+  address: 192.168.0.109
+
+# 根据用户需要配置
+#minio:
+#  server: http://192.168.0.109:9000
+#  accessKeyId: nf9SdeSrq7R4ffct
+#  secretAccessKey: fPnttv7iWo5MQytu1IJ6SpK39078ED52
+```
+
+## eoctl 使用
+> 注意: 下面命令成功的前提是 127.0.0.1:8080 能访问 eventops
+
 1. 从 [安装](#安装) 了解如何获取 `eoctl` 工具
-3. 注册用户 `eoctl register -s=http://127.0.0.1:8080 -u=kakj -p=123456 -e=2357431193@qq.com`
-4. 登录用户 `eoctl login -s=http://127.0.0.1:8080 -u=kakj -p=123456`
+2. 注册用户 `eoctl register -s=http://127.0.0.1:8080 -u=kakj -p=123456 -e=2357431193@qq.com`
+3. 登录用户 `eoctl login -s=http://127.0.0.1:8080 -u=kakj -p=123456`
 
-## 使用 eoctl 创建 actuatorDefinition pipelineDefinition triggerDefinition
-1. `git clone https://github.com/kakj-go/eventops.git && cd eventops`
-2. 修改 `example/hello-world/osActuator.yaml` 配置,
-3. `eoctl actuator apply -f example/hello-world/osActuator.yaml`
-4. `eoctl pipeline apply -f example/hello-world/pipelineDefinition.yaml`
-5. `eoctl trigger apply -f example/hello-world/triggerDefinition.yaml`
+## 使用 eoctl 创建 触发器定义 流水线定义 执行器定义
+1. `git clone https://github.com/kakj-go/eventops.git && cd eventops/example/hello-world`
+2. 修改 `osActuator.yaml` 配置
+3. `eoctl actuator apply -f osActuator.yaml`
+4. `eoctl pipeline apply -f pipelineDefinition.yaml`
+5. `eoctl trigger apply -f triggerDefinition.yaml`
 
 ## 模拟发送事件
 1. `eoctl event send -f example/hello-world/event.yaml`
 
 ## 查看流水线执行列表和获取详情
-
 在 `osActuator` 声明的机器用户目录下，可以查看各种信息
 
 ```shell
@@ -57,16 +80,16 @@ exit.code  nohup.log  nohup.pid  nohup.sh  response.txt  run.sh
 
 # nohup.log 文件记录用户命令的执行日志，其中包含标准输出和标准错误
 
-# run.sh 里面包含了用户 task 中的 command 命令，如果有文件类型的值引用，平台会前后增加 minio 客户端 mc 下载文件和上传文件命令，如果 task 有出参还增加回调的 curl 命令
-# 如果是其他类型的执行器 `task command` 前后也会根据情况增加一些 mc 上传下载和回调命令
+# run.sh 里面包含了用户 task 中的 command 命令, 用户 command 命令前后会根据 task 是否使用文件类型的值和是否有出参来动态生成 mc 命令和 curl 命令
 
 # nohup.sh 作为 run.sh 的父进程，目的时为了得到 run.sh 的 pid 和将 run.sh 置为后台运行进程
 
-# response.txt 记录了 run.sh 回调 curl 命令的返回值
+# response.txt 记录了 run.sh 回调 curl 命令的返回值，回调地址就对应 callbackAddress 的值
 
-# nohup.pid 文件记录 run.sh 的执行 pid
+# nohup.pid 文件记录 run.sh 的执行进程 id
 ```
-也可以使用 `eocli runtime list` 和 `eocli runtime get --id=pipelineId` 查看任务或者 `pipeline` 的执行情况
+
+最后也可以使用 `eocli runtime list` 和 `eocli runtime get --id=pipelineId` 查看任务或者 `pipeline` 的执行情况
 
 # 安装
 
@@ -127,7 +150,8 @@ mysql:
 #  # 基础 bucket
 #  basePath: eventops
 
-# 事件处理的一些并发配置 (必填)
+# 事件处理的一些并发配置
+# 以下是默认值
 event:
   process:
     # 事件处理的 buffer
@@ -141,7 +165,8 @@ event:
     # 事件 processing 超时事件
     processingOverTime: 120
 
-# 用户和校验 (必填)
+# 用户和校验
+# 以下是默认值
 uc:
   # 登录的 token 过期时间 
   loginTokenExpiresTime: 315360000

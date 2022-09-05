@@ -4,14 +4,13 @@ todo 需求优先级分为 `高` `中` `低`
 [] 代表 coding 状态 [] 中的名称就是开发者
 
 ## 高
-1. 文档补充完全 [kakj-go]
-2. task 的 caches 实现 [kakj-go]
-3. pipeline 定期回收在 actuator 上的资源(容器或者宿主机上的文件) [kakj-go]
-5. 代码结构优化 [kakj-go]
-6. task 上下文传递 [kakj-go]
-7. task 条件跳转执行 [kakj-go]
-8. docker-compose quick start [kakj-go]
-9. helm quick start [kakj-go]
+1. task 的 caches 实现 [kakj-go]
+2. pipeline 定期回收在 actuator 上的资源(容器或者宿主机上的文件) [kakj-go]
+3. 代码结构优化 [kakj-go]
+4. task 上下文访问 [kakj-go]
+5. task 条件跳转执行 [kakj-go]
+6. helm quick start [kakj-go]
+7. eoctl apply 和 list get 模拟 k8s yaml 操作模式 [kakj-go]
 
 ## 中
 1. eventops server 整个服务拆分，各个拆分的服务考虑横向扩展

@@ -5,9 +5,9 @@ callbackAddress: http://192.168.0.105:8080
 mysql:
   user: root
   password: 123456
-  address: 192.168.0.109
+  address: 192.168.0.108
 
 minio:
-  server: http://192.168.0.109:9000
-  accessKeyId: nf9SdeSrq7R4ffct
-  secretAccessKey: fPnttv7iWo5MQytu1IJ6SpK39078ED52
+  server: http://192.168.0.108:9000
+  accessKeyId: root
+  secretAccessKey: 1234567890

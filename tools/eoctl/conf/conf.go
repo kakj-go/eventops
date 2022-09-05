@@ -32,14 +32,21 @@ type Config struct {
 
 func (c *Config) SetUser(user apistructs.User, server string) error {
 	defaultUser := c.GetDefaultUser()
-	if defaultUser == nil {
-		c.UserInfos = append(c.UserInfos, &UserInfo{
-			Server:   server,
-			Username: user.Name,
-			Token:    user.Token,
-			Default:  true,
-		})
-		return c.save()
+	if defaultUser != nil {
+		for index, userInfo := range c.UserInfos {
+			if userInfo.Username == defaultUser.Username && userInfo.Server == defaultUser.Server {
+				c.UserInfos[index] = &UserInfo{
+					Server:   userInfo.Server,
+					Username: userInfo.Username,
+					Token:    user.Token,
+					Default:  false,
+				}
+			}
+			err := c.save()
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	userInfo := c.GetUser(user.Name, server)
@@ -59,12 +66,11 @@ func (c *Config) SetUser(user apistructs.User, server string) error {
 				Server:   userInfo.Server,
 				Username: userInfo.Username,
 				Token:    user.Token,
-				Default:  userInfo.Default,
+				Default:  true,
 			}
 		}
 		return c.save()
 	}
-
 	return nil
 }
 
