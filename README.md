@@ -54,15 +54,19 @@ server 端, 内部有 uc register pipeline event dialer 等五类 api
 exit.code  nohup.log  nohup.pid  nohup.sh  response.txt  run.sh
 
 # exit.code 文件记录用户的命令执行的退出码，只有退出码为 0 时任务才是成功状态
+
 # nohup.log 文件记录用户命令的执行日志，其中包含标准输出和标准错误
+
 # run.sh 里面包含了用户 task 中的 command 命令，如果有文件类型的值引用，平台会前后增加 minio 客户端 mc 下载文件和上传文件命令，如果 task 有出参还增加回调的 curl 命令
+# 如果是其他类型的执行器 `task command` 前后也会根据情况增加一些 mc 上传下载和回调命令
+
 # nohup.sh 作为 run.sh 的父进程，目的时为了得到 run.sh 的 pid 和将 run.sh 置为后台运行进程
+
 # response.txt 记录了 run.sh 回调 curl 命令的返回值
+
 # nohup.pid 文件记录 run.sh 的执行 pid
 ```
 也可以使用 `eocli runtime list` 和 `eocli runtime get --id=pipelineId` 查看任务或者 `pipeline` 的执行情况
-
-如果是其他类型的执行器 `task command` 前后也会根据情况增加一些 mc 上传下载和回调命令
 
 # 安装
 
@@ -73,11 +77,14 @@ exit.code  nohup.log  nohup.pid  nohup.sh  response.txt  run.sh
 ```shell
 git clone https://github.com/kakj-go/eventops.git
 cd eventops
-make xxx
+
+make eocli-linux-amd64
+make eventops-linux-amd64
+make client-linux-amd64
 ```
 
 ### 从 github 下载
-`release` 有 3 种工具可以下载 `eventops` `eoctl` 和 `client`
+`release` 中有 3 种工具可以下载 `eventops` `eoctl` 和 `client`
 
 ## 使用
 
