@@ -36,10 +36,9 @@
 # 文档
 
 ## pipelineDefinition
-yaml 字段描述
-
 > 注意: 如果流水线入参全局变量和出参，或者任务的出参如果存在文件类型的值引用，则 server 的 config.yaml 中需要配置 minio, 然后运行任务的宿主机或者容器需要内置 mc(minio client) 命令
-> 
+
+yaml 字段描述
 
 ### name
 声明定义的名称
